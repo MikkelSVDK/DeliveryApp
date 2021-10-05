@@ -1,7 +1,9 @@
 import React from 'react';
 import { Keyboard, SafeAreaView, StyleSheet, Text, TextInput, Button, ScrollView } from 'react-native';
+import { showMessage } from "react-native-flash-message";
+import Constants from 'expo-constants';
+const statusBarHeight = Constants.statusBarHeight
 
-import FlashMessage, { showMessage } from "react-native-flash-message";
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 
@@ -23,7 +25,7 @@ export default class SignIn extends React.Component {
     const params = new URLSearchParams();
     params.append('employee', this.state.employee)
     params.append('password', this.state.password)
-    axios.post('http://172.16.5.15/employee/signin', params, {
+    axios.post('https://ryslinge.mikkelsv.dk/v1/employee/signin', params, {
       headers: {
         'Content-Type': 'application/x-www-form-urlencoded'
       }
@@ -56,7 +58,6 @@ export default class SignIn extends React.Component {
   render(){
     return (
       <SafeAreaView>
-        <FlashMessage position="top" />
         <Text style={styles.topText}>Log ind</Text>
         <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
           <TextInput onChangeText={(employee) => this.setState({employee})} onBlur={() => this.setFocus('employee', false)} onFocus={() => this.setFocus('employee', true)} style={[styles.input, this.state.focus.employee ? styles.inputFocus : styles.inputNotFocus]} placeholder="Email adresse eller mobilnummer" />
@@ -78,7 +79,7 @@ const styles = StyleSheet.create({
   topText: {
     fontSize: 25,
     marginBottom: 0,
-    marginTop: 10,
+    marginTop: Platform.OS === "android" ? statusBarHeight + 25 : 7,
     textAlign: 'center',
   },
   input: {

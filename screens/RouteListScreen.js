@@ -1,6 +1,8 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, Button, TouchableOpacity, ScrollView } from 'react-native';
-import { WebView } from 'react-native-webview';
+import { SafeAreaView, StyleSheet, Text, Button, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+import { showMessage, hideMessage } from "react-native-flash-message";
+import Constants from 'expo-constants';
+const statusBarHeight = Constants.statusBarHeight
 
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
@@ -13,40 +15,48 @@ export default class RouteList extends React.Component {
   }
 
   updateRoutes(){
-    SecureStore.getItemAsync("sessionToken").then(token => {
-      if(token != null){
-        axios.get('http://172.16.5.15/routes', {
-          headers: {
-            'Authorization': "Bearer " + token
-          }
-        }).then(res => {
-          if(res.data.success)
-            this.setState({routes: res.data.data.routes})
-        });
-      }
+    axios.get('https://ryslinge.mikkelsv.dk/v1/route').then(res => {
+      if(res.data.success)
+        this.setState({routes: res.data.data.routes})
+      else
+        showMessage({message: res.data.errors[0], type: "danger"})
+      
+      setTimeout(() => this.setState({refreshing: false}), 500)
     });
   }
 
-  viewRoute(id){
-    this.props.navigation.navigate("RouteInfo", {routeId: id});
+  onRefresh(){
+    this.setState({refreshing: true})
+    
+    this.updateRoutes()
+  }
+
+  viewRoute(route){
+    this.props.navigation.navigate("RouteInfo", {routeId: route});
   }
 
   componentDidMount(){
-    this.updateRoutes();
+    SecureStore.getItemAsync("sessionToken").then(token => {
+      if(token != null)
+        axios.defaults.headers.common['Authorization'] = "Bearer " + token;
+      
+      this.updateRoutes();
+    });
   }
 
   state = {
+    refreshing: false,
     routes: []
   }
 
   render(){
     return (
       <SafeAreaView style={{ flex:1 }}>
-        <TouchableOpacity onPress={() => this.updateRoutes()} style={styles.refreshButton}>
+        <TouchableOpacity onPress={() => this.onRefresh()} style={styles.refreshButton}>
           <Text style={styles.refreshButtonText}>Refresh</Text>
         </TouchableOpacity>
         <Text style={styles.topText}>Rute Liste</Text>
-        <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
+        <ScrollView refreshControl={<RefreshControl refreshing={this.state.refreshing} onRefresh={() => this.onRefresh()} />} style={styles.container} keyboardShouldPersistTaps="handled">
           {this.state.routes.map(route => {
             return (
               <TouchableOpacity key={route.id} onPress={() => this.viewRoute(route.id)} style={styles.routeButton}>
@@ -68,23 +78,22 @@ const styles = StyleSheet.create({
     padding: 40,
     width: '100%',
     height: '100%',
-    resizeMode: 'contain',
+    resizeMode: 'contain'
   },
   refreshButton: {
-    marginTop: 60,
-    marginLeft: 20,
+    top: 55,
+    right: 23,
     position: 'absolute',
     zIndex: 1
   },
   refreshButtonText: {
     fontSize: 18,
     color: '#0f94d1',
-    textDecorationLine: 'underline'
   },
   topText: {
     fontSize: 25,
     marginBottom: 0,
-    marginTop: 10,
+    marginTop: Platform.OS === "android" ? statusBarHeight + 25 : 7,
     textAlign: 'center',
   },
   routeButton: {
