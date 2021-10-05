@@ -1,21 +1,29 @@
 import { StatusBar } from 'expo-status-bar';
 import React from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
 
-export default function App() {
-  return (
-    <View style={styles.container}>
-      <Text>Open up App.tsx to start working on your app!</Text>
-      <StatusBar style="auto" />
-    </View>
-  );
+import SignInScreen from './screens/SignInScreen';
+import RouteListScreen from './screens/RouteListScreen';
+import RouteInfoScreen from './screens/RouteInfoScreen';
+
+const Stack = createNativeStackNavigator();
+
+export default class App extends React.Component {
+  initialRoute(){
+    return "SignIn";
+  }
+
+  render(){
+    return (
+      <NavigationContainer>
+        <StatusBar style="auto" />
+        <Stack.Navigator initialRouteName={this.initialRoute()}>
+          <Stack.Screen name="SignIn" component={SignInScreen} options={{ headerShown: false }} />
+          <Stack.Screen name="RouteList" component={RouteListScreen} options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="RouteInfo" component={RouteInfoScreen} options={{ title: 'Rute info' }} />
+        </Stack.Navigator>
+      </NavigationContainer>
+    );
+  }
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#fff',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-});
