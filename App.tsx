@@ -7,6 +7,7 @@ import FlashMessage from "react-native-flash-message";
 import SignInScreen from './screens/SignInScreen';
 import RouteListScreen from './screens/RouteListScreen';
 import RouteInfoScreen from './screens/RouteInfoScreen';
+import RouteNavigationScreen from './screens/RouteNavigationScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -24,7 +25,7 @@ export default class App extends React.Component {
           <Stack.Screen name="SignIn" component={SignInScreen} options={{ headerShown: false }} />
           <Stack.Screen name="RouteList" component={RouteListScreen} options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="RouteInfo" component={RouteInfoScreen} />
-          <Stack.Screen name="RouteNavigation" component={RouteInfoScreen} options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="RouteNavigation" component={RouteNavigationScreen} options={{ headerShown: false, gestureEnabled: false }} />
         </Stack.Navigator>
       </NavigationContainer>
     );

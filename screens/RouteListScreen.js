@@ -59,7 +59,7 @@ export default class RouteList extends React.Component {
         <ScrollView refreshControl={<RefreshControl refreshing={this.state.refreshing} onRefresh={() => this.onRefresh()} />} style={styles.container} keyboardShouldPersistTaps="handled">
           {this.state.routes.map(route => {
             return (
-              <TouchableOpacity key={route.id} onPress={() => this.viewRoute(route.id)} style={styles.routeButton}>
+              <TouchableOpacity key={`route-{route.id}`} onPress={() => this.viewRoute(route.id)} style={styles.routeButton}>
                 <Text style={styles.routeText}>
                   {route.name}
                 </Text>
