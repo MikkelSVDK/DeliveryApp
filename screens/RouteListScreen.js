@@ -1,6 +1,6 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet, Text, Button, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
-import { showMessage, hideMessage } from "react-native-flash-message";
+import { showMessage } from "react-native-flash-message";
 import Constants from 'expo-constants';
 const statusBarHeight = Constants.statusBarHeight
 
@@ -75,7 +75,7 @@ export default class RouteList extends React.Component {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 40,
+    padding: 20,
     width: '100%',
     height: '100%',
     resizeMode: 'contain'

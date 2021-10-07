@@ -1,7 +1,9 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, Button, View, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, Button, View, TouchableOpacity } from 'react-native';
 import getDirections from 'react-native-google-maps-directions';
 import MapView, { Marker } from 'react-native-maps';
+import Constants from 'expo-constants';
+const statusBarHeight = Constants.statusBarHeight
 
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
@@ -9,13 +11,7 @@ import axios from 'axios';
 
 export default class RouteNavigation extends React.Component {
   async calculateDiffrence(lat, log){
-    let { status } = await Location.requestForegroundPermissionsAsync();
-    if (status !== 'granted') {
-      this.setState({errorMsg: 'Permission to access location was denied'});
-      return;
-    }
-
-    let location = await Location.getCurrentPositionAsync({accuracy: 3});
+    let location = await Location.getCurrentPositionAsync({accuracy: 4});
 
     return (
       Math.acos( 
@@ -79,12 +75,34 @@ export default class RouteNavigation extends React.Component {
         this.setState({currentStop: res.data.data.stops.find(s => s.delivered == 0)})
         this.setState({mapLoading: true})
 
-        this.refreshScreen();
-        this.state.refreshInterval = setInterval(function(){
+        if(this.state.currentStop != null){
           this.refreshScreen();
-        }.bind(this), 1000);
+          this.state.refreshInterval = setInterval(function(){
+            this.refreshScreen();
+          }.bind(this), 3500);
+        }
       }
     });
+
+    (async () => {
+      let { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        this.setState({errorMsg: 'Permission to access location was denied'});
+        return;
+      }
+    })();
+  }
+
+  componentDidUpdate(){
+    if(this.state.distanceFromDestination < 30 && this.state.distanceFromDestination != -1 && !this.state.arrivedAtStop){
+      this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planId: this.props.route.params.planId, stopId: this.state.currentStop.id});
+      clearInterval(this.state.refreshInterval);
+      this.setState({arrivedAtStop: true});
+    }
+
+    if(this.state.currentStop == null){
+      this.props.navigation.navigate("RouteCompleted");
+    }
   }
 
   componentWillUnmount(){
@@ -94,6 +112,7 @@ export default class RouteNavigation extends React.Component {
   state = {
     refreshInterval: null,
     mapLoading: false,
+    arrivedAtStop: false,
     errorMsg: '',
     route: {},
     stops: [],
@@ -107,15 +126,15 @@ export default class RouteNavigation extends React.Component {
     if (this.errorMsg) {
       text = this.state.errorMsg;
     } else if (this.state.distanceFromDestination != -1) {
-      text = this.state.distanceFromDestination + ' Meters';
+      text = Math.round(this.state.distanceFromDestination * 100) / 100 + ' Meters';
     }
 
     return (
       <SafeAreaView style={{ flex:1, margin: 10 }}>
         <Text style={styles.topText}>{this.state.route.name} rute navigation</Text>
         <View style={styles.hrLine}></View>
-        {this.state.mapLoading && <MapView showsTraffic={true} initialRegion={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 }} style={styles.map}>
-          <Marker coordinate={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng, }} title={this.state.currentStop.customer.address.formatted} />
+        {this.state.mapLoading && <MapView showsTraffic={true} initialRegion={{ latitude: this.state.currentStop != null ? this.state.currentStop.customer.address.geometry.lat : 0, longitude: this.state.currentStop != null ? this.state.currentStop.customer.address.geometry.lng : 0, latitudeDelta: 0.01, longitudeDelta: 0.01 }} style={styles.map}>
+          <Marker coordinate={{ latitude: this.state.currentStop != null ? this.state.currentStop.customer.address.geometry.lat : 0, longitude: this.state.currentStop != null ? this.state.currentStop.customer.address.geometry.lng : 0 }} title={this.state.currentStop != null ? this.state.currentStop.customer.address.formatted : '...'} />
         </MapView>}
         <TouchableOpacity style={styles.startNaviButton} onPress={() => this.openGoogleMaps()}>
           <Text style={styles.startNaviButtonText}>Åben rutevejledning i Google Maps</Text>
@@ -129,12 +148,6 @@ export default class RouteNavigation extends React.Component {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    padding: 40,
-    width: '100%',
-    height: '100%',
-    resizeMode: 'contain',
-  },
   hrLine:{
     borderBottomColor: '#ccc',
     borderBottomWidth: 1,

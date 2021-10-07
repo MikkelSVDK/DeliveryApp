@@ -1,6 +1,5 @@
 import React from 'react';
-import { StyleSheet, Text, Button, TouchableOpacity, View, ScrollView, SafeAreaView, Image, TextComponent } from 'react-native';
-import { showMessage } from "react-native-flash-message";
+import { StyleSheet, Text, Button, TouchableOpacity, View, ScrollView, SafeAreaView, Image } from 'react-native';
 
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
@@ -22,21 +21,20 @@ export default class RouteView extends React.Component {
               for (let i = 0; i < res.data.data.dishes.length; i++)
                 res.data.data.dishes[i].count = 0;
 
-              this.setState(res.data.data)
-            }
-          });
+              this.setState(res.data.data);
 
-          axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.state.current_plan.id + '/stop').then(res => {
-            if(res.data.success){
-              this.setState({stops: res.data.data.stops})
+              axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.state.current_plan.id + '/stop').then(res => {
+                if(res.data.success){
+                  this.setState({stops: res.data.data.stops})
 
-              res.data.data.stops.forEach(stop => {
-                var currDishIndex = this.state.dishes.findIndex(d => d.type == stop.dish_type);
-                if(currDishIndex != -1)
-                  this.state.dishes[currDishIndex].count += 1;
+                  res.data.data.stops.forEach(stop => {
+                    var currDishIndex = this.state.dishes.findIndex(d => d.type == stop.dish_type);
+                    if(currDishIndex != -1)
+                      this.state.dishes[currDishIndex].count += stop.dish_amount;
+                  });
+                  this.setState(this.state.dishes);
+                }
               });
-              this.setState(this.state.dishes);
-              
             }
           });
         }
@@ -104,7 +102,7 @@ export default class RouteView extends React.Component {
                     <Text style={styles.stopTextName}>{index + 1}. {stop.customer.name}</Text>
                     <Text style={styles.stopTextAddress}>{stop.customer.address.formatted || "Ingen adresse"}</Text>
                     <View style={styles.hrLine}></View>
-                    <Text style={styles.stopTextAddress}>{{normal: 0 + ' ⨉ Normal ret', alternative: 0 + ' ⨉ Alternativ ret', 'sugar free': 0 + '⨉ Sukkerfri ret', null: 'Ingen ret'}[stop.dish_type]}</Text>
+                    <Text style={styles.stopTextAddress}>{{normal: stop.dish_amount + ' ⨉ Normal ret', alternative: stop.dish_amount + ' ⨉ Alternativ ret', 'sugar free': stop.dish_amount + '⨉ Sukkerfri ret', null: 'Ingen ret'}[stop.dish_type]}</Text>
                     <Text style={styles.stopTextAddress}>{stop.sandwiches != 0 ? stop.sandwiches + ' ⨉ Håndmadder' : 'Ingen håndmadder'}</Text>
                   </View>
                 );

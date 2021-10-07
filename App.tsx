@@ -8,6 +8,8 @@ import SignInScreen from './screens/SignInScreen';
 import RouteListScreen from './screens/RouteListScreen';
 import RouteInfoScreen from './screens/RouteInfoScreen';
 import RouteNavigationScreen from './screens/RouteNavigationScreen';
+import RouteDestinationScreen from './screens/RouteDestinationScreen';
+import RouteCompletedScreen from './screens/RouteCompletedScreen';
 
 const Stack = createNativeStackNavigator();
 
@@ -26,6 +28,8 @@ export default class App extends React.Component {
           <Stack.Screen name="RouteList" component={RouteListScreen} options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="RouteInfo" component={RouteInfoScreen} />
           <Stack.Screen name="RouteNavigation" component={RouteNavigationScreen} options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="RouteDestination" component={RouteDestinationScreen} options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="RouteCompleted" component={RouteCompletedScreen} options={{ headerShown: false, gestureEnabled: false }} />
         </Stack.Navigator>
       </NavigationContainer>
     );
