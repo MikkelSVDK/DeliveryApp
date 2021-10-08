@@ -27,7 +27,8 @@
     "react-native-walkthrough-tooltip": "^1.3.0",
     "react-native-web": "~0.13.12",
     "react-native-webview": "11.6.2",
-    "rn-tooltip": "^3.0.1"
+    "rn-tooltip": "^3.0.1",
+    "expo-keep-awake": "~9.2.0"
   },
   "devDependencies": {
     "@babel/core": "^7.9.0",
