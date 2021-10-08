@@ -1,7 +1,8 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet, Text, Button, View, TouchableOpacity } from 'react-native';
 import getDirections from 'react-native-google-maps-directions';
-import MapView, { Marker } from 'react-native-maps';
+import { showMessage } from "react-native-flash-message";
+import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Constants from 'expo-constants';
 const statusBarHeight = Constants.statusBarHeight
 
@@ -10,30 +11,41 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 
 export default class RouteNavigation extends React.Component {
-  async calculateDiffrence(lat, log){
-    let location = await Location.getCurrentPositionAsync({accuracy: 4});
-
+  calculateDiffrence(lat, lng){
     return (
       Math.acos( 
         Math.sin(
-          ( location.coords.latitude * Math.PI / 180 ) 
+          ( lat * Math.PI / 180 ) 
         ) * Math.sin(
-          ( lat * Math.PI / 180 )
+          ( this.state.currentStop.customer.address.geometry.lat * Math.PI / 180 )
         ) + Math.cos(
-          ( location.coords.latitude * Math.PI / 180 ) 
-        ) * Math.cos( ( lat * Math.PI / 180 ) 
+          ( lat * Math.PI / 180 ) 
+        ) * Math.cos( ( this.state.currentStop.customer.address.geometry.lat * Math.PI / 180 ) 
         ) *  Math.cos( 
-          ( ( location.coords.longitude - log ) * Math.PI / 180 )
+          ( ( lng - this.state.currentStop.customer.address.geometry.lng ) * Math.PI / 180 )
         ) 
       ) * 180 / Math.PI 
     ) * 60 * 1.1515 * 1.609344 * 1000;
   }
 
-  async refreshScreen(){
+  async startLocationWatch(){
+    let watchPosition = await Location.watchPositionAsync({
+      accuracy: 5,
+      distanceInterval: 1,
+    }, location => {
+      var metersToDestination = this.calculateDiffrence(location.coords.latitude, location.coords.longitude);
+      
+      this.setState({metersToDestination: metersToDestination});
+    });
+
+    this.setState({watchPosition: watchPosition})
+  }
+
+  /*async refreshScreen(){
     let distance = await this.calculateDiffrence(this.state.currentStop.customer.address.geometry.lat, this.state.currentStop.customer.address.geometry.lng)
 
     this.setState({distanceFromDestination: distance});
-  }
+  }*/
 
   openGoogleMaps(){
     const data = {
@@ -58,6 +70,20 @@ export default class RouteNavigation extends React.Component {
   }
 
   componentDidMount(){
+    // Ask for location permissions
+    (async () => {
+      let { status, granted } = await Location.getForegroundPermissionsAsync();
+      if(!granted){
+        Location.requestForegroundPermissionsAsync().then(async ({ status, granted }) => {
+          if(granted)
+            this.startLocationWatch();
+          else
+            showMessage({message: "Appen virker ikke uden adgang til Lokation", type: "danger"});
+        });
+      }else
+        this.startLocationWatch();
+    })();
+
     SecureStore.getItemAsync("sessionToken").then(token => {
       if(token != null)
         axios.defaults.headers.common['Authorization'] = "Bearer " + token;
@@ -75,28 +101,28 @@ export default class RouteNavigation extends React.Component {
         this.setState({currentStop: res.data.data.stops.find(s => s.delivered == 0)})
         this.setState({mapLoading: true})
 
-        if(this.state.currentStop != null){
+        /*if(this.state.currentStop != null){
           this.refreshScreen();
           this.state.refreshInterval = setInterval(function(){
             this.refreshScreen();
           }.bind(this), 3500);
-        }
+        }*/
       }
     });
 
-    (async () => {
+    /*(async () => {
+      let  i = Location.getBackgroundPermissionsAsync();
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== 'granted') {
         this.setState({errorMsg: 'Permission to access location was denied'});
         return;
       }
-    })();
+    })();*/
   }
 
   componentDidUpdate(){
-    if(this.state.distanceFromDestination < 30 && this.state.distanceFromDestination != -1 && !this.state.arrivedAtStop){
+    if(this.state.metersToDestination < 10 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
       this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planId: this.props.route.params.planId, stopId: this.state.currentStop.id});
-      clearInterval(this.state.refreshInterval);
       this.setState({arrivedAtStop: true});
     }
 
@@ -106,42 +132,51 @@ export default class RouteNavigation extends React.Component {
   }
 
   componentWillUnmount(){
-    clearInterval(this.state.refreshInterval);
+    if(this.state.watchPosition != null)
+      this.state.watchPosition.remove();
   }
 
   state = {
-    refreshInterval: null,
+    watchPosition: null,
     mapLoading: false,
     arrivedAtStop: false,
-    errorMsg: '',
     route: {},
     stops: [],
-    currentStop: {},
+    currentStop: {
+      customer: {
+        address: {
+          formatted: '...',
+          geometry: {
+            lat: 0,
+            lng: 0
+          }
+        }
+      }
+    },
     meta: {},
-    distanceFromDestination: -1,
+    metersToDestination: -1,
   }
 
   render(){
-    let text = 'Loading distance...';
-    if (this.errorMsg) {
-      text = this.state.errorMsg;
-    } else if (this.state.distanceFromDestination != -1) {
-      text = Math.round(this.state.distanceFromDestination * 100) / 100 + ' Meters';
-    }
-
     return (
-      <SafeAreaView style={{ flex:1, margin: 10 }}>
-        <Text style={styles.topText}>{this.state.route.name} rute navigation</Text>
+      <SafeAreaView style={{ flex: 1, margin: 10 }}>
+        <Text style={styles.topText}>{this.state.route.name} rutevejledning</Text>
         <View style={styles.hrLine}></View>
-        {this.state.mapLoading && <MapView showsTraffic={true} initialRegion={{ latitude: this.state.currentStop != null ? this.state.currentStop.customer.address.geometry.lat : 0, longitude: this.state.currentStop != null ? this.state.currentStop.customer.address.geometry.lng : 0, latitudeDelta: 0.01, longitudeDelta: 0.01 }} style={styles.map}>
-          <Marker coordinate={{ latitude: this.state.currentStop != null ? this.state.currentStop.customer.address.geometry.lat : 0, longitude: this.state.currentStop != null ? this.state.currentStop.customer.address.geometry.lng : 0 }} title={this.state.currentStop != null ? this.state.currentStop.customer.address.formatted : '...'} />
+        {this.state.mapLoading && <MapView provider={PROVIDER_GOOGLE} showsTraffic={true} initialRegion={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng, latitudeDelta: 0.01, longitudeDelta: 0.01 }} style={styles.map}>
+          <Marker coordinate={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng }} title={this.state.currentStop.customer.address.formatted} />
         </MapView>}
         <TouchableOpacity style={styles.startNaviButton} onPress={() => this.openGoogleMaps()}>
           <Text style={styles.startNaviButtonText}>Åben rutevejledning i Google Maps</Text>
         </TouchableOpacity>
+        <View style={styles.hrLine}>
+          <Text style={{position: 'absolute', top: 0, right: 0, fontSize: 10}}>{this.state.metersToDestination > 1000 ? (Math.round(this.state.metersToDestination / 100) / 10) + ' KM' : (Math.round(this.state.metersToDestination * 10) / 10) + ' M'}</Text>
+        </View>
+        <Text style={styles.stopInfo}>Navn: {this.state.currentStop.customer.name || '...'}</Text>
+        <Text style={styles.stopInfo}>Adresse: {this.state.currentStop.customer.address.formatted || '...'}</Text>
         <View style={styles.hrLine}></View>
-        <Text style={[styles.topText, {marginTop: 50, marginBottom: 50}]}>{text}</Text>
-        <Button title="Go Back" onPress={() => this.props.navigation.navigate('RouteList')} />
+        <View style={{bottom: 0, position: 'absolute', width: '100%'}}>
+          <Button title="Annuller" onPress={() => this.props.navigation.navigate('RouteList')} />
+        </View>
       </SafeAreaView>
     );
   }
@@ -174,7 +209,10 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   startNaviButtonText: {
-    fontSize: 20,
+    fontSize: 18,
     textAlign: 'center'
+  },
+  stopInfo: {
+    fontSize: 15
   }
 });

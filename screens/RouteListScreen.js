@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, Button, TouchableOpacity, RefreshControl, ScrollView } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, Button, TouchableOpacity, RefreshControl, ScrollView, View } from 'react-native';
 import { showMessage } from "react-native-flash-message";
 import Constants from 'expo-constants';
 const statusBarHeight = Constants.statusBarHeight
@@ -67,7 +67,9 @@ export default class RouteList extends React.Component {
             );
           })}
         </ScrollView>
-        <Button onPress={() => this.signOut()} title="Log ud" />
+        <View style={{padding: 10}}>
+          <Button onPress={() => this.signOut()} title="Log ud" />
+        </View>
       </SafeAreaView>
     );
   }

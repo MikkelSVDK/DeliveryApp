@@ -49,9 +49,6 @@ export default class RouteDestination extends React.Component {
   render(){
     return (
       <SafeAreaView style={{ flex:1 }}>
-        <TouchableOpacity onPress={() => this.onRefresh()} style={styles.refreshButton}>
-          <Text style={styles.refreshButtonText}>Refresh</Text>
-        </TouchableOpacity>
         <Text style={styles.topText}>Ankommet til</Text>
         <Text style={styles.address}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.address.formatted : '...'}</Text>
         <View style={styles.hrLine}></View>
