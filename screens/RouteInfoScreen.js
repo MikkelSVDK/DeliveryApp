@@ -56,7 +56,9 @@ export default class RouteView extends React.Component {
 
     this.props.navigation.setOptions({
       headerRight: () => (
-        <Button onPress={() => this.updateRoute()} title="Refresh" />
+        <TouchableOpacity onPress={() => this.updateRoute()}>
+          <Text style={styles.refreshButtonText}>Refresh</Text>
+        </TouchableOpacity>
       ),
     });
   }
@@ -137,6 +139,10 @@ const styles = StyleSheet.create({
     borderBottomColor: '#ccc',
     borderBottomWidth: 1,
     marginVertical: 5
+  },
+  refreshButtonText: {
+    fontSize: 18,
+    color: '#0f94d1',
   },
   foodHeader: {
     fontSize: 20,

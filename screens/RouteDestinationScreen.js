@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, View, ScrollView, TouchableOpacity, TextInput } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View, ScrollView, RefreshControl, TouchableOpacity, TextInput, BackHandler, ToastAndroid } from 'react-native';
 import Tooltip from 'react-native-walkthrough-tooltip';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -9,7 +9,7 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 
 export default class RouteDestination extends React.Component {
-  onRefresh(){
+  updateRouteStop(){
     axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.props.route.params.planId + '/stop/' + this.props.route.params.stopId).then(res => {
       if(res.data.success){
         this.setState({stop: res.data.data});
@@ -18,6 +18,8 @@ export default class RouteDestination extends React.Component {
           if(res.data.success){
             let selectedDish = res.data.data.dishes.find(d => d.type == this.state.stop.dish_type)
             this.setState({'selectedDish': selectedDish});
+
+            this.setState({refreshing: false})
           }
         });
       }
@@ -31,19 +33,37 @@ export default class RouteDestination extends React.Component {
     });
   }
 
+  onRefresh(){
+    this.setState({refreshing: true})
+    
+    this.updateRouteStop()
+  }
+
+  handleBackButton() {
+    ToastAndroid.show('Du kan ikke bruge tilbageknappen', ToastAndroid.SHORT);
+    return true;
+  }
+
   componentDidMount(){
     SecureStore.getItemAsync("sessionToken").then(token => {
       if(token != null)
         axios.defaults.headers.common['Authorization'] = "Bearer " + token;
       
-      this.onRefresh();
+      this.updateRouteStop();
     });
+    
+    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
+  }
+
+  componentWillUnmount() {
+    BackHandler.removeEventListener('hardwareBackPress', this.handleBackButton);
   }
 
   state = {
     stop: {},
     selectedDish: {},
-    dishToolTipVisible: false
+    dishToolTipVisible: false,
+    refreshing: false
   }
 
   render(){
@@ -52,30 +72,32 @@ export default class RouteDestination extends React.Component {
         <Text style={styles.topText}>Ankommet til</Text>
         <Text style={styles.address}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.address.formatted : '...'}</Text>
         <View style={styles.hrLine}></View>
-        <View style={{maxHeight:288}}>
-          <ScrollView style={[styles.container, {flexGrow:0}]} keyboardShouldPersistTaps="handled">
-            <Tooltip topAdjustment={Platform.OS === "android" ? -24 : 0} isVisible={this.state.dishToolTipVisible} content={<Text>{this.state.stop.comment || 'Ingen kommentar'}</Text>} placement="top" onClose={() => this.setState({ dishToolTipVisible: false })} >
-              {this.state.stop.comment != null ? <TouchableOpacity onPress={() => this.setState({ dishToolTipVisible: true })} style={styles.stopView}>
-                <Text style={styles.stopTextName}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.name : '...'}</Text>
-                <View style={styles.hrLine}></View>
-                <Text style={styles.stopTextAddress}>{{normal: this.state.stop.dish_amount + ' ⨉ Normal ret', alternative: this.state.stop.dish_amount + ' ⨉ Alternativ ret', 'sugar free': this.state.stop.dish_amount + '⨉ Sukkerfri ret', null: 'Ingen ret'}[this.state.stop.dish_type]}</Text>
-                <Text style={styles.stopTextAddress}>{this.state.stop.sandwiches != 0 ? this.state.stop.sandwiches + ' ⨉ Håndmadder' : 'Ingen håndmadder'}</Text>              <Ionicons style={{position: 'absolute', right: 10, top: 10}} name="information-circle-sharp" size={24} color="black" />
-              </TouchableOpacity> : <View style={styles.stopView}>
-                <Text style={styles.stopTextName}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.name : '...'}</Text>
-                <View style={styles.hrLine}></View>
-                <Text style={styles.stopTextAddress}>{{normal: this.state.stop.dish_amount + ' ⨉ Normal ret', alternative: this.state.stop.dish_amount + ' ⨉ Alternativ ret', 'sugar free': this.state.stop.dish_amount + '⨉ Sukkerfri ret', null: 'Ingen ret'}[this.state.stop.dish_type]}</Text>
-                <Text style={styles.stopTextAddress}>{this.state.stop.sandwiches != 0 ? this.state.stop.sandwiches + ' ⨉ Håndmadder' : 'Ingen håndmadder'}</Text>
-              </View>}
-            </Tooltip>
-            <View style={styles.hrLine}></View>
-            <TextInput placeholder="Kommentar til leveringen..." style={styles.input} numberOfLines={4} onChangeText={text => this.setState({ comment: text })} value={this.state.comment} multiline />
-          </ScrollView>
-        </View>
-        <View style={{padding: 15}}>
-          <TouchableOpacity style={styles.startButton} onPress={() => this.foodDelivered()}>
-            <Text style={styles.startButtonText}>Leveret</Text>
-          </TouchableOpacity>
-        </View>
+        <ScrollView refreshControl={<RefreshControl refreshing={this.state.refreshing} onRefresh={() => this.onRefresh()} />} keyboardShouldPersistTaps="handled">
+          <View style={{maxHeight:288}}>
+            <View style={[styles.container, {flexGrow:0}]} keyboardShouldPersistTaps="handled">
+              <Tooltip topAdjustment={Platform.OS === "android" ? -24 : 0} isVisible={this.state.dishToolTipVisible} content={<Text>{this.state.stop.comment || 'Ingen kommentar'}</Text>} placement="top" onClose={() => this.setState({ dishToolTipVisible: false })} >
+                {this.state.stop.comment != null ? <TouchableOpacity onPress={() => this.setState({ dishToolTipVisible: true })} style={styles.stopView}>
+                  <Text style={styles.stopTextName}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.name : '...'}</Text>
+                  <View style={styles.hrLine}></View>
+                  <Text style={styles.stopTextAddress}>{{normal: this.state.stop.dish_amount + ' ⨉ Normal ret', alternative: this.state.stop.dish_amount + ' ⨉ Alternativ ret', 'sugar free': this.state.stop.dish_amount + '⨉ Sukkerfri ret', null: 'Ingen ret'}[this.state.stop.dish_type]}</Text>
+                  <Text style={styles.stopTextAddress}>{this.state.stop.sandwiches != 0 ? this.state.stop.sandwiches + ' ⨉ Håndmadder' : 'Ingen håndmadder'}</Text>              <Ionicons style={{position: 'absolute', right: 10, top: 10}} name="information-circle-sharp" size={24} color="black" />
+                </TouchableOpacity> : <View style={styles.stopView}>
+                  <Text style={styles.stopTextName}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.name : '...'}</Text>
+                  <View style={styles.hrLine}></View>
+                  <Text style={styles.stopTextAddress}>{{normal: this.state.stop.dish_amount + ' ⨉ Normal ret', alternative: this.state.stop.dish_amount + ' ⨉ Alternativ ret', 'sugar free': this.state.stop.dish_amount + '⨉ Sukkerfri ret', null: 'Ingen ret'}[this.state.stop.dish_type]}</Text>
+                  <Text style={styles.stopTextAddress}>{this.state.stop.sandwiches != 0 ? this.state.stop.sandwiches + ' ⨉ Håndmadder' : 'Ingen håndmadder'}</Text>
+                </View>}
+              </Tooltip>
+              <View style={styles.hrLine}></View>
+              <TextInput placeholder="Kommentar til leveringen..." style={styles.input} numberOfLines={4} onChangeText={text => this.setState({ comment: text })} value={this.state.comment} multiline />
+            </View>
+          </View>
+          <View style={{padding: 15}}>
+            <TouchableOpacity style={styles.startButton} onPress={() => this.foodDelivered()}>
+              <Text style={styles.startButtonText}>Leveret</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
       </SafeAreaView>
     );
   }

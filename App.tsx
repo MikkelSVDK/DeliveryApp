@@ -25,7 +25,7 @@ export default class App extends React.Component {
           <Stack.Screen name="SignIn" component={SignInScreen} options={{ headerShown: false }} />
           <Stack.Screen name="RouteList" component={RouteListScreen} options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="RouteInfo" component={RouteInfoScreen} />
-          <Stack.Screen name="RouteNavigation" component={RouteNavigationScreen} options={{ headerShown: false, gestureEnabled: false }} />
+          <Stack.Screen name="RouteNavigation" component={RouteNavigationScreen} />
           <Stack.Screen name="RouteDestination" component={RouteDestinationScreen} options={{ headerShown: false, gestureEnabled: false }} />
           <Stack.Screen name="RouteCompleted" component={RouteCompletedScreen} options={{ headerShown: false, gestureEnabled: false }} />
         </Stack.Navigator>

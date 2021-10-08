@@ -21,7 +21,7 @@ export default class RouteList extends React.Component {
       else
         showMessage({message: res.data.errors[0], type: "danger"})
       
-      setTimeout(() => this.setState({refreshing: false}), 500)
+      this.setState({refreshing: false})
     });
   }
 
@@ -56,6 +56,7 @@ export default class RouteList extends React.Component {
           <Text style={styles.refreshButtonText}>Refresh</Text>
         </TouchableOpacity>
         <Text style={styles.topText}>Rute Liste</Text>
+        <View style={styles.hrLine}></View>
         <ScrollView refreshControl={<RefreshControl refreshing={this.state.refreshing} onRefresh={() => this.onRefresh()} />} style={styles.container} keyboardShouldPersistTaps="handled">
           {this.state.routes.map(route => {
             return (
@@ -91,6 +92,11 @@ const styles = StyleSheet.create({
   refreshButtonText: {
     fontSize: 18,
     color: '#0f94d1',
+  },
+  hrLine:{
+    borderBottomColor: '#ccc',
+    borderBottomWidth: 1,
+    marginVertical: 5
   },
   topText: {
     fontSize: 25,
