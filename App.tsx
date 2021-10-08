@@ -2,7 +2,6 @@ import { StatusBar } from 'expo-status-bar';
 import React from 'react';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import FlashMessage from "react-native-flash-message";
 
 import SignInScreen from './screens/SignInScreen';
 import RouteListScreen from './screens/RouteListScreen';
@@ -22,7 +21,6 @@ export default class App extends React.Component {
     return (
       <NavigationContainer>
         <StatusBar style="auto" />
-        <FlashMessage position="top" />
         <Stack.Navigator initialRouteName={this.initialRoute()}>
           <Stack.Screen name="SignIn" component={SignInScreen} options={{ headerShown: false }} />
           <Stack.Screen name="RouteList" component={RouteListScreen} options={{ headerShown: false, gestureEnabled: false }} />

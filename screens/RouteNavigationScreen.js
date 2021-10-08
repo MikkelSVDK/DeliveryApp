@@ -1,7 +1,6 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet, Text, Button, View, TouchableOpacity } from 'react-native';
 import getDirections from 'react-native-google-maps-directions';
-import { showMessage } from "react-native-flash-message";
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
@@ -58,7 +57,12 @@ export default class RouteNavigation extends React.Component {
     axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.props.route.params.planId + '/stop').then(res => {
       if(res.data.success){
         this.setState(res.data.data)
-        this.setState({currentStop: res.data.data.stops.find(s => s.delivered == 0)})
+        let currentStop = res.data.data.stops.find(s => s.delivered == 0)
+        if(currentStop != null)
+          this.setState({currentStop: currentStop})
+        else
+          this.setState({currentStop: { customer: { address: { formatted: 'completed', geometry: { lat: 0, lng: 0 }}}}})
+        
         this.setState({mapLoading: true})
       }
     });
@@ -97,7 +101,7 @@ export default class RouteNavigation extends React.Component {
           if(granted)
             this.startLocationWatch();
           else
-            showMessage({message: "Appen virker ikke uden adgang til Lokation", type: "danger"});
+            this.setState({errorMsg: 'Appen virker ikke uden adgang til Lokalition tjenesten'});
         });
       }else
         this.startLocationWatch();
@@ -116,19 +120,19 @@ export default class RouteNavigation extends React.Component {
   }
 
   componentDidUpdate(){
-    deactivateKeepAwake();
-    
-    if(this.state.metersToDestination < 25 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
+    if(this.state.metersToDestination < 50 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
       this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planId: this.props.route.params.planId, stopId: this.state.currentStop.id});
       this.setState({arrivedAtStop: true});
     }
 
-    if(this.state.currentStop == null){
+    if(this.state.currentStop.customer.address.formatted == 'completed'){
       this.props.navigation.navigate("RouteCompleted");
     }
   }
 
   componentWillUnmount(){
+    deactivateKeepAwake();
+
     if(this.state.watchPosition != null)
       this.state.watchPosition.remove();
     
@@ -140,6 +144,7 @@ export default class RouteNavigation extends React.Component {
   state = {
     watchPosition: null,
     navigationListener: null,
+    errorMsg: '',
     mapLoading: false,
     arrivedAtStop: false,
     route: {},
@@ -161,23 +166,30 @@ export default class RouteNavigation extends React.Component {
 
   render(){
     return (
-      <SafeAreaView style={{ flex: 1, margin: 10 }}>
-        <Text style={styles.topText}>{this.state.route.name} rutevejledning</Text>
-        <View style={styles.hrLine}></View>
-        {this.state.mapLoading && <MapView provider={PROVIDER_GOOGLE} showsTraffic={true} initialRegion={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng, latitudeDelta: 0.002, longitudeDelta: 0.002 }} style={styles.map}>
-          <Marker coordinate={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng }} title={this.state.currentStop.customer.address.formatted} />
-        </MapView>}
-        <TouchableOpacity style={styles.startNaviButton} onPress={() => this.openGoogleMaps()}>
-          <Text style={styles.startNaviButtonText}>Åben rutevejledning i Google Maps</Text>
-        </TouchableOpacity>
-        <View style={styles.hrLine}>
-          <Text style={{position: 'absolute', top: 0, right: 0, fontSize: 10}}>{this.state.metersToDestination > 1000 ? (Math.round(this.state.metersToDestination / 100) / 10) + ' KM' : (Math.round(this.state.metersToDestination * 10) / 10) + ' M'}</Text>
+      <SafeAreaView style={{ flex: 1 }}>
+        <View style={{ margin: 10 }}>
+          <Text style={styles.topText}>{this.state.route.name} rutevejledning</Text>
+          <View style={styles.hrLine}></View>
+          {this.state.mapLoading && <MapView provider={PROVIDER_GOOGLE} showsTraffic={true} initialRegion={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng, latitudeDelta: 0.002, longitudeDelta: 0.002 }} style={styles.map}>
+            <Marker coordinate={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng }} title={this.state.currentStop.customer.address.formatted} />
+          </MapView>}
+          <TouchableOpacity style={styles.startNaviButton} onPress={() => this.openGoogleMaps()}>
+            <Text style={styles.startNaviButtonText}>Åben rutevejledning i Google Maps</Text>
+          </TouchableOpacity>
+          <View style={styles.hrLine}>
+            <Text style={{position: 'absolute', top: 0, right: 0, fontSize: 10}}>{this.state.metersToDestination > 1000 ? (Math.round(this.state.metersToDestination / 100) / 10) + ' KM' : (Math.round(this.state.metersToDestination * 10) / 10) + ' M'}</Text>
+          </View>
+          <Text>Navn:</Text>
+          <Text style={[styles.stopInfo, {marginBottom: 10}]}>{this.state.currentStop.customer.name || '...'}</Text>
+          <Text>Adresse:</Text>
+          <Text style={styles.stopInfo}>{this.state.currentStop.customer.address.formatted || '...'}</Text>
+          {this.state.errorMsg != '' && <View style={{position: 'absolute', top: Platform.OS === "android" ? statusBarHeight + 68 : 46}}>
+            <View style={{backgroundColor: 'red', padding: 12}}>
+              <Text style={{color: 'white', textAlign: 'center', fontSize: 18}}>{this.state.errorMsg}</Text>
+            </View>
+          </View>}
         </View>
-        <Text>Navn:</Text>
-        <Text style={styles.stopInfo}>{this.state.currentStop.customer.name || '...'}</Text>
-        <Text>Adresse:</Text>
-        <Text style={styles.stopInfo}>{this.state.currentStop.customer.address.formatted || '...'}</Text>
-        <View style={{bottom: 0, position: 'absolute', width: '100%'}}>
+        <View style={{bottom: 30, padding: 10, position: 'absolute', width: '100%'}}>
           <Button title="Annuller" onPress={() => this.props.navigation.navigate('RouteList')} />
         </View>
       </SafeAreaView>
@@ -199,7 +211,7 @@ const styles = StyleSheet.create({
   },
   map: {
     width: '100%',
-    height: '40%'
+    height: '50%'
   },
   startNaviButton: {
     marginTop: 10,
@@ -216,7 +228,6 @@ const styles = StyleSheet.create({
     textAlign: 'center'
   },
   stopInfo: {
-    fontSize: 18,
-    marginBottom: 10
+    fontSize: 18
   }
 });

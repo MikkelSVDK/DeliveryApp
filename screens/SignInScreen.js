@@ -1,6 +1,6 @@
 import React from 'react';
 import { Keyboard, SafeAreaView, StyleSheet, Text, TextInput, Button, ScrollView } from 'react-native';
-import { showMessage } from "react-native-flash-message";
+import FlashMessage, { showMessage } from "react-native-flash-message";
 import Constants from 'expo-constants';
 const statusBarHeight = Constants.statusBarHeight
 
@@ -64,6 +64,7 @@ export default class SignIn extends React.Component {
           <TextInput onChangeText={(password) => this.setState({password})} onBlur={() => this.setFocus('password', false)} onFocus={() => this.setFocus('password', true)} style={[styles.input, this.state.focus.password ? styles.inputFocus : styles.inputNotFocus]} secureTextEntry={true} placeholder="Adgangskode" />
           <Button title="Log ind" onPress={() => this.signIn()} />
         </ScrollView>
+        <FlashMessage position="top" />
       </SafeAreaView>
     );
   }
