@@ -9,6 +9,12 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 
 export default class RouteDestination extends React.Component {
+  signOut(){
+    SecureStore.deleteItemAsync("sessionToken");
+    delete axios.defaults.headers.common['Authorization']
+    this.props.navigation.navigate('SignIn');
+  }
+  
   updateRouteStop(){
     axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.props.route.params.planId + '/stop/' + this.props.route.params.stopId).then(res => {
       if(res.data.success){
@@ -22,6 +28,9 @@ export default class RouteDestination extends React.Component {
             this.setState({refreshing: false})
           }
         });
+      }else{
+        if(res.data.errors[0] == "invalid access token" || res.data.errors[0] == "access token expired")
+          this.signOut();
       }
     });
   }

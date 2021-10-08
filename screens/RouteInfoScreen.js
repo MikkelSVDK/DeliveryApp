@@ -5,10 +5,20 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 
 export default class RouteView extends React.Component {
+  signOut(){
+    SecureStore.deleteItemAsync("sessionToken");
+    delete axios.defaults.headers.common['Authorization']
+    this.props.navigation.navigate('SignIn');
+  }
+
   updateRoute(){
     axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId).then(res => {
       if(res.data.success)
         this.setState(res.data.data)
+      else{
+        if(res.data.errors[0] == "invalid access token" || res.data.errors[0] == "access token expired")
+          this.signOut();
+      }
     });
 
     axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/current_plan').then(res => {

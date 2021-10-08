@@ -1,5 +1,5 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, Button, View, TouchableOpacity } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View, TouchableOpacity } from 'react-native';
 import getDirections from 'react-native-google-maps-directions';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 
@@ -49,8 +49,11 @@ export default class RouteNavigation extends React.Component {
       metersToDestination: -1
     })
     axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId).then(res => {
-      if(res.data.success){
+      if(res.data.success)
         this.setState(res.data.data)
+      else{
+        if(res.data.errors[0] == "invalid access token" || res.data.errors[0] == "access token expired")
+          this.signOut();
       }
     });
 
@@ -128,9 +131,8 @@ export default class RouteNavigation extends React.Component {
       this.setState({arrivedAtStop: true});
     }
 
-    if(this.state.currentStop.customer.address.formatted == 'completed'){
+    if(this.state.currentStop.customer.address.formatted == 'completed')
       this.props.navigation.navigate("RouteCompleted");
-    }
   }
 
   componentWillUnmount(){
@@ -170,7 +172,7 @@ export default class RouteNavigation extends React.Component {
   render(){
     return (
       <SafeAreaView style={{ flex: 1 }}>
-        {this.state.mapLoading && <MapView provider={PROVIDER_GOOGLE} showsTraffic={true} initialRegion={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng, latitudeDelta: 0.002, longitudeDelta: 0.002 }} style={styles.map}>
+        {this.state.mapLoading && <MapView mapType="hybrid" provider={PROVIDER_GOOGLE} showsUserLocation={true} userLocationPriority="balanced" showsTraffic={true} initialRegion={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng, latitudeDelta: 0.002, longitudeDelta: 0.002 }} style={styles.map}>
           <Marker coordinate={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng }} title={this.state.currentStop.customer.address.formatted} />
         </MapView>}
         {this.state.errorMsg != '' && <View style={{position: 'absolute', width: '100%', top: 0}}>

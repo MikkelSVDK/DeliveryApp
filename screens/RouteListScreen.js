@@ -1,6 +1,5 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, Button, TouchableOpacity, RefreshControl, ScrollView, View } from 'react-native';
-import { showMessage } from "react-native-flash-message";
+import { SafeAreaView, StyleSheet, Text, Button, TouchableOpacity, RefreshControl, ScrollView, View, BackHandler } from 'react-native';
 import Constants from 'expo-constants';
 const statusBarHeight = Constants.statusBarHeight
 
@@ -10,16 +9,18 @@ import axios from 'axios';
 export default class RouteList extends React.Component {
   signOut(){
     SecureStore.deleteItemAsync("sessionToken");
-    this.props.navigation.navigate('SignIn');
     delete axios.defaults.headers.common['Authorization']
+    this.props.navigation.navigate('SignIn');
   }
 
   updateRoutes(){
     axios.get('https://ryslinge.mikkelsv.dk/v1/route').then(res => {
       if(res.data.success)
         this.setState({routes: res.data.data.routes})
-      else
-        showMessage({message: res.data.errors[0], type: "danger"})
+      else{
+        if(res.data.errors[0] == "invalid access token" || res.data.errors[0] == "access token expired")
+          this.signOut();
+      }
       
       this.setState({refreshing: false})
     });
@@ -35,12 +36,24 @@ export default class RouteList extends React.Component {
     this.props.navigation.navigate("RouteInfo", {routeId: route});
   }
 
+  handleBackButton() {
+    return true;
+  }
+
   componentDidMount(){
     SecureStore.getItemAsync("sessionToken").then(token => {
       if(token != null)
         axios.defaults.headers.common['Authorization'] = "Bearer " + token;
       
       this.updateRoutes();
+    });
+
+    const navigationFocusListener = this.props.navigation.addListener('focus', () => {
+      BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
+    });
+
+    const navigationUnFocusListener = this.props.navigation.addListener('blur', () => {
+      BackHandler.removeEventListener('hardwareBackPress', this.handleBackButton);
     });
   }
 
@@ -68,9 +81,6 @@ export default class RouteList extends React.Component {
             );
           })}
         </ScrollView>
-        <View style={{padding: 10}}>
-          <Button onPress={() => this.signOut()} title="Log ud" />
-        </View>
       </SafeAreaView>
     );
   }
