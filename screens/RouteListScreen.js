@@ -14,7 +14,7 @@ export default class RouteList extends React.Component {
   }
 
   updateRoutes(){
-    axios.get('https://ryslinge.mikkelsv.dk/v1/route').then(res => {
+    axios.get('https://api.delivery-ryslingefh.tk/v2/route').then(res => {
       if(res.data.success)
         this.setState({routes: res.data.data.routes})
       else{
@@ -73,7 +73,7 @@ export default class RouteList extends React.Component {
         <ScrollView refreshControl={<RefreshControl refreshing={this.state.refreshing} onRefresh={() => this.onRefresh()} />} style={styles.container} keyboardShouldPersistTaps="handled">
           {this.state.routes.map(route => {
             return (
-              <TouchableOpacity key={`route-{route.id}`} onPress={() => this.viewRoute(route.id)} style={styles.routeButton}>
+              <TouchableOpacity key={`route-${route.id}`} onPress={() => this.viewRoute(route.id)} style={styles.routeButton}>
                 <Text style={styles.routeText}>
                   {route.name}
                 </Text>

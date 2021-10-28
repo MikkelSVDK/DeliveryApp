@@ -48,23 +48,23 @@ export default class RouteNavigation extends React.Component {
       arrivedAtStop: false,
       metersToDestination: -1
     })
-    axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId).then(res => {
+    axios.get('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId).then(res => {
       if(res.data.success)
-        this.setState(res.data.data)
+        this.setState({route: res.data.data})
       else{
         if(res.data.errors[0] == "invalid access token" || res.data.errors[0] == "access token expired")
           this.signOut();
       }
     });
 
-    axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.props.route.params.planId + '/stop').then(res => {
+    axios.get('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId + '/' + this.props.route.params.planDate + '/stop').then(res => {
       if(res.data.success){
         this.setState(res.data.data)
         let currentStop = res.data.data.stops.find(s => s.delivered == 0)
         if(currentStop != null)
           this.setState({currentStop: currentStop})
         else
-          this.setState({currentStop: { customer: { address: { formatted: 'completed', geometry: { lat: 0, lng: 0 }}}}})
+          this.setState({currentStop: { customer: { primary_address: { formatted: 'completed', geometry: { lat: 0, lng: 0 }}}}})
         
         this.setState({mapLoading: true})
       }
@@ -75,8 +75,8 @@ export default class RouteNavigation extends React.Component {
     const data = {
       source: null,
       destination: {
-        latitude: this.state.currentStop.customer.address.geometry.lat,
-        longitude: this.state.currentStop.customer.address.geometry.lng
+        latitude: this.state.currentStop.customer.primary_address.geometry.lat,
+        longitude: this.state.currentStop.customer.primary_address.geometry.lng
       },
       params: [
         {
@@ -127,11 +127,11 @@ export default class RouteNavigation extends React.Component {
       this.props.navigation.setOptions({ title: this.state.route.name + ' rutevejledning' })
     
     if(this.state.metersToDestination < 50 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
-      this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planId: this.props.route.params.planId, stopId: this.state.currentStop.id});
+      this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate, stopId: this.state.currentStop.id});
       this.setState({arrivedAtStop: true});
     }
 
-    if(this.state.currentStop.customer.address.formatted == 'completed')
+    if(this.state.currentStop.customer.primary_address.formatted == 'completed')
       this.props.navigation.navigate("RouteCompleted");
   }
 
@@ -156,7 +156,7 @@ export default class RouteNavigation extends React.Component {
     stops: [],
     currentStop: {
       customer: {
-        address: {
+        primary_address: {
           formatted: '...',
           geometry: {
             lat: 0,
@@ -173,7 +173,7 @@ export default class RouteNavigation extends React.Component {
     return (
       <SafeAreaView style={{ flex: 1 }}>
         {this.state.mapLoading && <MapView mapType="hybrid" provider={PROVIDER_GOOGLE} showsUserLocation={true} userLocationPriority="balanced" showsTraffic={true} initialRegion={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng, latitudeDelta: 0.002, longitudeDelta: 0.002 }} style={styles.map}>
-          <Marker coordinate={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng }} title={this.state.currentStop.customer.address.formatted} />
+          <Marker coordinate={{ latitude: this.state.currentStop.customer.primary_address.geometry.lat, longitude: this.state.currentStop.customer.primary_address.geometry.lng }} title={this.state.currentStop.customer.address.formatted} />
         </MapView>}
         {this.state.errorMsg != '' && <View style={{position: 'absolute', width: '100%', top: 0}}>
             <View style={{backgroundColor: 'red', padding: 12}}>
@@ -190,7 +190,7 @@ export default class RouteNavigation extends React.Component {
           <Text>Navn:</Text>
           <Text style={[styles.stopInfo, {marginBottom: 10}]}>{this.state.currentStop.customer.name || '...'}</Text>
           <Text>Adresse:</Text>
-          <Text style={styles.stopInfo}>{this.state.currentStop.customer.address.formatted || '...'}</Text>
+          <Text style={styles.stopInfo}>{this.state.currentStop.customer.primary_address.formatted || '...'}</Text>
         </View>
       </SafeAreaView>
     );

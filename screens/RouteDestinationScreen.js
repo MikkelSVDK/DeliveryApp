@@ -16,18 +16,18 @@ export default class RouteDestination extends React.Component {
   }
   
   updateRouteStop(){
-    axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.props.route.params.planId + '/stop/' + this.props.route.params.stopId).then(res => {
+    axios.get('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId + '/' + this.props.route.params.planDate + '/stop/' + this.props.route.params.stopId).then(res => {
       if(res.data.success){
         this.setState({stop: res.data.data});
 
-        axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.props.route.params.planId + '/dish').then(res => {
+        /*axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.props.route.params.planId + '/dish').then(res => {
           if(res.data.success){
             let selectedDish = res.data.data.dishes.find(d => d.type == this.state.stop.dish_type)
             this.setState({'selectedDish': selectedDish});
 
             this.setState({refreshing: false})
           }
-        });
+        });*/
       }else{
         if(res.data.errors[0] == "invalid access token" || res.data.errors[0] == "access token expired")
           this.signOut();
@@ -36,9 +36,9 @@ export default class RouteDestination extends React.Component {
   }
 
   foodDelivered(){
-    axios.put('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.props.route.params.planId + '/stop/' + this.props.route.params.stopId + '/delivered').then(res => {
+    axios.put('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId + '/' + this.props.route.params.planDate + '/stop/' + this.props.route.params.stopId + '/delivered').then(res => {
       if(res.data.success)
-        this.props.navigation.navigate("RouteNavigation", {routeId: this.props.route.params.routeId, planId: this.props.route.params.planId});
+        this.props.navigation.navigate("RouteNavigation", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate});
     });
   }
 

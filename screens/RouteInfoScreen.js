@@ -12,39 +12,23 @@ export default class RouteView extends React.Component {
   }
 
   updateRoute(){
-    axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId).then(res => {
+    axios.get('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId).then(res => {
       if(res.data.success)
-        this.setState(res.data.data)
+        this.setState({route: res.data.data})
       else{
         if(res.data.errors[0] == "invalid access token" || res.data.errors[0] == "access token expired")
           this.signOut();
       }
     });
 
-    axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/current_plan').then(res => {
+    axios.get('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId + '/current_plan').then(res => {
       if(res.data.success){
         this.setState(res.data.data)
 
-        if(res.data.data.current_plan != null){
-          axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.state.current_plan.id + '/dish').then(res => {
+        if(this.state.current_plan != null){
+          axios.get('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId + '/' + this.state.current_plan + '/stop').then(res => {
             if(res.data.success){
-              for (let i = 0; i < res.data.data.dishes.length; i++)
-                res.data.data.dishes[i].count = 0;
-
               this.setState(res.data.data);
-
-              axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.state.current_plan.id + '/stop').then(res => {
-                if(res.data.success){
-                  this.setState({stops: res.data.data.stops})
-
-                  res.data.data.stops.forEach(stop => {
-                    var currDishIndex = this.state.dishes.findIndex(d => d.type == stop.dish_type);
-                    if(currDishIndex != -1)
-                      this.state.dishes[currDishIndex].count += stop.dish_amount;
-                  });
-                  this.setState(this.state.dishes);
-                }
-              });
             }
           });
         }
@@ -53,7 +37,7 @@ export default class RouteView extends React.Component {
   }
 
   startRouteNavigation(){
-    this.props.navigation.navigate("RouteNavigation", {routeId: this.state.route.id, planId: this.state.current_plan.id});
+    this.props.navigation.navigate("RouteNavigation", {routeId: this.state.route.id, planDate: this.state.current_plan});
   }
 
   componentDidMount(){
@@ -81,6 +65,7 @@ export default class RouteView extends React.Component {
   state = {
     route: {},
     current_plan: null,
+    meta: {},
     dishes: [],
     stops: []
   }
@@ -99,7 +84,7 @@ export default class RouteView extends React.Component {
                     <View style={styles.foodImageView} key={`stop-${index}`}>
                       <Image style={styles.foodImage} source={{uri: dish.image}} />
                       <Text style={styles.foodImageTextName}>{dish.name}</Text>
-                      <Text style={styles.foodImageTextType}>{dish.count} ⨉ {{normal: 'Normal ret', alternative: 'Alternativ ret', 'sugar free': 'Sukkerfri ret'}[dish.type]}</Text>
+                      <Text style={styles.foodImageTextType}>{this.state.meta.dish_count[dish.type]} ⨉ {{normal: 'Normal ret', alternative: 'Alternativ ret', 'sugar free': 'Sukkerfri ret'}[dish.type]}</Text>
                     </View>
                   );
                 })}
@@ -112,9 +97,9 @@ export default class RouteView extends React.Component {
                 return (
                   <View style={styles.stopView} key={`stop-${index}`}>
                     <Text style={styles.stopTextName}>{index + 1}. {stop.customer.name}</Text>
-                    <Text style={styles.stopTextAddress}>{stop.customer.address.formatted || "Ingen adresse"}</Text>
+                    <Text style={styles.stopTextAddress}>{stop.customer.primary_address != null ? stop.customer.primary_address.formatted : "Ingen adresse"}</Text>
                     <View style={styles.hrLine}></View>
-                    <Text style={styles.stopTextAddress}>{{normal: stop.dish_amount + ' ⨉ Normal ret', alternative: stop.dish_amount + ' ⨉ Alternativ ret', 'sugar free': stop.dish_amount + '⨉ Sukkerfri ret', null: 'Ingen ret'}[stop.dish_type]}</Text>
+                    <Text style={styles.stopTextAddress}>{stop.dish != null ? {normal: stop.dish.amount + ' ⨉ Normal ret', alternative: stop.dish.amount + ' ⨉ Alternativ ret', 'sugar free': stop.dish.amount + '⨉ Sukkerfri ret'}[stop.dish.type] : 'Ingen ret'}</Text>
                     <Text style={styles.stopTextAddress}>{stop.sandwiches != 0 ? stop.sandwiches + ' ⨉ Håndmadder' : 'Ingen håndmadder'}</Text>
                   </View>
                 );
