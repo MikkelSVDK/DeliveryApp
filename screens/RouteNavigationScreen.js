@@ -18,12 +18,12 @@ export default class RouteNavigation extends React.Component {
         Math.sin(
           ( lat * Math.PI / 180 ) 
         ) * Math.sin(
-          ( this.state.currentStop.customer.address.geometry.lat * Math.PI / 180 )
+          ( this.state.currentStop.customer.primary_address.geometry.lat * Math.PI / 180 )
         ) + Math.cos(
           ( lat * Math.PI / 180 ) 
-        ) * Math.cos( ( this.state.currentStop.customer.address.geometry.lat * Math.PI / 180 ) 
+        ) * Math.cos( ( this.state.currentStop.customer.primary_address.geometry.lat * Math.PI / 180 ) 
         ) *  Math.cos( 
-          ( ( lng - this.state.currentStop.customer.address.geometry.lng ) * Math.PI / 180 )
+          ( ( lng - this.state.currentStop.customer.primary_address.geometry.lng ) * Math.PI / 180 )
         ) 
       ) * 180 / Math.PI 
     ) * 60 * 1.1515 * 1.609344 * 1000;
@@ -33,6 +33,7 @@ export default class RouteNavigation extends React.Component {
     let watchPosition = await Location.watchPositionAsync({
       accuracy: 5,
       distanceInterval: 1,
+      timeInterval: 5000
     }, location => {
       var metersToDestination = this.calculateDiffrence(location.coords.latitude, location.coords.longitude);
       
@@ -126,7 +127,7 @@ export default class RouteNavigation extends React.Component {
     if(state.route.name != this.state.route.name)
       this.props.navigation.setOptions({ title: this.state.route.name + ' rutevejledning' })
     
-    if(this.state.metersToDestination < 50 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
+    if(this.state.metersToDestination < 65 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
       this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate, stopId: this.state.currentStop.id});
       this.setState({arrivedAtStop: true});
     }
@@ -172,8 +173,8 @@ export default class RouteNavigation extends React.Component {
   render(){
     return (
       <SafeAreaView style={{ flex: 1 }}>
-        {this.state.mapLoading && <MapView mapType="hybrid" provider={PROVIDER_GOOGLE} showsUserLocation={true} userLocationPriority="balanced" showsTraffic={true} initialRegion={{ latitude: this.state.currentStop.customer.address.geometry.lat, longitude: this.state.currentStop.customer.address.geometry.lng, latitudeDelta: 0.002, longitudeDelta: 0.002 }} style={styles.map}>
-          <Marker coordinate={{ latitude: this.state.currentStop.customer.primary_address.geometry.lat, longitude: this.state.currentStop.customer.primary_address.geometry.lng }} title={this.state.currentStop.customer.address.formatted} />
+        {this.state.mapLoading && <MapView mapType="hybrid" provider={PROVIDER_GOOGLE} showsUserLocation={true} userLocationPriority="balanced" showsTraffic={true} initialRegion={{ latitude: this.state.currentStop.customer.primary_address.geometry.lat, longitude: this.state.currentStop.customer.primary_address.geometry.lng, latitudeDelta: 0.002, longitudeDelta: 0.002 }} style={styles.map}>
+          <Marker coordinate={{ latitude: this.state.currentStop.customer.primary_address.geometry.lat, longitude: this.state.currentStop.customer.primary_address.geometry.lng }} title={this.state.currentStop.customer.primary_address.formatted} />
         </MapView>}
         {this.state.errorMsg != '' && <View style={{position: 'absolute', width: '100%', top: 0}}>
             <View style={{backgroundColor: 'red', padding: 12}}>

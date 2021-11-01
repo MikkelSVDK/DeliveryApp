@@ -81,7 +81,7 @@ export default class RouteView extends React.Component {
               <ScrollView style={{flexGrow:0}}>
                 {this.state.dishes.map((dish, index) => {
                   return (
-                    <View style={styles.foodImageView} key={`stop-${index}`}>
+                    <View style={styles.foodImageView} key={`dish-${index}`}>
                       <Image style={styles.foodImage} source={{uri: dish.image}} />
                       <Text style={styles.foodImageTextName}>{dish.name}</Text>
                       <Text style={styles.foodImageTextType}>{this.state.meta.dish_count[dish.type]} ⨉ {{normal: 'Normal ret', alternative: 'Alternativ ret', 'sugar free': 'Sukkerfri ret'}[dish.type]}</Text>

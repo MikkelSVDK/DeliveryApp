@@ -28,6 +28,7 @@ export default class RouteDestination extends React.Component {
             this.setState({refreshing: false})
           }
         });*/
+        this.setState({refreshing: false})
       }else{
         if(res.data.errors[0] == "invalid access token" || res.data.errors[0] == "access token expired")
           this.signOut();
@@ -79,7 +80,7 @@ export default class RouteDestination extends React.Component {
     return (
       <SafeAreaView style={{ flex:1 }}>
         <Text style={styles.topText}>Ankommet til</Text>
-        <Text style={styles.address}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.address.formatted : '...'}</Text>
+        <Text style={styles.address}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.primary_address.formatted : '...'}</Text>
         <View style={styles.hrLine}></View>
         <ScrollView refreshControl={<RefreshControl refreshing={this.state.refreshing} onRefresh={() => this.onRefresh()} />} keyboardShouldPersistTaps="handled">
           <View style={{maxHeight:288}}>
