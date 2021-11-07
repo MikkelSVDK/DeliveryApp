@@ -84,7 +84,7 @@ export default class RouteView extends React.Component {
                     <View style={styles.foodImageView} key={`dish-${index}`}>
                       <Image style={styles.foodImage} source={{uri: dish.image}} />
                       <Text style={styles.foodImageTextName}>{dish.name}</Text>
-                      <Text style={styles.foodImageTextType}>{this.state.meta.dish_count[dish.type]} ⨉ {{normal: 'Normal ret', alternative: 'Alternativ ret', 'sugar free': 'Sukkerfri ret'}[dish.type]}</Text>
+                      <Text style={styles.foodImageTextType}>{this.state.meta.dish_count[dish.type]} ⨉ {{normal: 'Normal ret', alternative: 'Alternativ ret'}[dish.type]}</Text>
                     </View>
                   );
                 })}
@@ -96,11 +96,11 @@ export default class RouteView extends React.Component {
               {this.state.stops.map((stop, index) => {
                 return (
                   <View style={styles.stopView} key={`stop-${index}`}>
-                    <Text style={styles.stopTextName}>{index + 1}. {stop.customer.name}</Text>
+                    <Text style={styles.stopTextName}>{index + 1}. {stop.customer.name} {stop.customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
                     <Text style={styles.stopTextAddress}>{stop.customer.primary_address != null ? stop.customer.primary_address.formatted : "Ingen adresse"}</Text>
                     <View style={styles.hrLine}></View>
-                    <Text style={styles.stopTextAddress}>{stop.dish != null ? {normal: stop.dish.amount + ' ⨉ Normal ret', alternative: stop.dish.amount + ' ⨉ Alternativ ret', 'sugar free': stop.dish.amount + '⨉ Sukkerfri ret'}[stop.dish.type] : 'Ingen ret'}</Text>
-                    <Text style={styles.stopTextAddress}>{stop.sandwiches != 0 ? stop.sandwiches + ' ⨉ Håndmadder' : 'Ingen håndmadder'}</Text>
+                    <Text style={styles.stopTextAddress}>{stop.dish != null ? {normal: stop.dish.amount + ' ⨉ Normal ret', alternative: stop.dish.amount + ' ⨉ Alternativ ret'}[stop.dish.type] : 'Ingen ret'}</Text>
+                    <Text style={styles.stopTextAddress}>{stop.sandwiches.amount != 0 ? stop.sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {stop.sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
                   </View>
                 );
               })}
@@ -205,5 +205,9 @@ const styles = StyleSheet.create({
   startButtonText: {
     fontSize: 25,
     textAlign: 'center'
+  },
+  badge: {
+    backgroundColor: '#0f94d1',
+    padding: 2
   }
 });

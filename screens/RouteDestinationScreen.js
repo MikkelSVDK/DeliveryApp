@@ -20,14 +20,6 @@ export default class RouteDestination extends React.Component {
       if(res.data.success){
         this.setState({stop: res.data.data});
 
-        /*axios.get('https://ryslinge.mikkelsv.dk/v1/route/' + this.props.route.params.routeId + '/plan/' + this.props.route.params.planId + '/dish').then(res => {
-          if(res.data.success){
-            let selectedDish = res.data.data.dishes.find(d => d.type == this.state.stop.dish_type)
-            this.setState({'selectedDish': selectedDish});
-
-            this.setState({refreshing: false})
-          }
-        });*/
         this.setState({refreshing: false})
       }else{
         if(res.data.errors[0] == "invalid access token" || res.data.errors[0] == "access token expired")
@@ -70,7 +62,13 @@ export default class RouteDestination extends React.Component {
   }
 
   state = {
-    stop: {},
+    stop: {
+      sandwiches: {},
+      dish: {},
+      customer: {
+        primary_address: {}
+      }
+    },
     selectedDish: {},
     dishToolTipVisible: false,
     refreshing: false
@@ -87,15 +85,16 @@ export default class RouteDestination extends React.Component {
             <View style={[styles.container, {flexGrow:0}]} keyboardShouldPersistTaps="handled">
               <Tooltip topAdjustment={Platform.OS === "android" ? -24 : 0} isVisible={this.state.dishToolTipVisible} content={<Text>{this.state.stop.comment || 'Ingen kommentar'}</Text>} placement="top" onClose={() => this.setState({ dishToolTipVisible: false })} >
                 {this.state.stop.comment != null ? <TouchableOpacity onPress={() => this.setState({ dishToolTipVisible: true })} style={styles.stopView}>
-                  <Text style={styles.stopTextName}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.name : '...'}</Text>
+                  <Text style={styles.stopTextName}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.name : '...'} {this.state.stop.customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
                   <View style={styles.hrLine}></View>
-                  <Text style={styles.stopTextAddress}>{{normal: this.state.stop.dish_amount + ' ⨉ Normal ret', alternative: this.state.stop.dish_amount + ' ⨉ Alternativ ret', 'sugar free': this.state.stop.dish_amount + '⨉ Sukkerfri ret', null: 'Ingen ret'}[this.state.stop.dish_type]}</Text>
-                  <Text style={styles.stopTextAddress}>{this.state.stop.sandwiches != 0 ? this.state.stop.sandwiches + ' ⨉ Håndmadder' : 'Ingen håndmadder'}</Text>              <Ionicons style={{position: 'absolute', right: 10, top: 10}} name="information-circle-sharp" size={24} color="black" />
+                  <Text style={styles.stopTextAddress}>{this.state.stop.dish != null ? {normal: this.state.stop.dish.amount + ' ⨉ Normal ret', alternative: this.state.stop.dish.amount + ' ⨉ Alternativ ret'}[this.state.stop.dish.type] : 'Ingen ret'}</Text>
+                  <Text style={styles.stopTextAddress}>{this.state.stop.sandwiches.amount != 0 ? this.state.stop.sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {this.state.stop.sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
+                  <Ionicons style={{position: 'absolute', right: 10, top: 10}} name="information-circle-sharp" size={24} color="black" />
                 </TouchableOpacity> : <View style={styles.stopView}>
-                  <Text style={styles.stopTextName}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.name : '...'}</Text>
+                  <Text style={styles.stopTextName}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.name : '...'} {this.state.stop.customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
                   <View style={styles.hrLine}></View>
-                  <Text style={styles.stopTextAddress}>{{normal: this.state.stop.dish_amount + ' ⨉ Normal ret', alternative: this.state.stop.dish_amount + ' ⨉ Alternativ ret', 'sugar free': this.state.stop.dish_amount + '⨉ Sukkerfri ret', null: 'Ingen ret'}[this.state.stop.dish_type]}</Text>
-                  <Text style={styles.stopTextAddress}>{this.state.stop.sandwiches != 0 ? this.state.stop.sandwiches + ' ⨉ Håndmadder' : 'Ingen håndmadder'}</Text>
+                  <Text style={styles.stopTextAddress}>{this.state.stop.dish != null ? {normal: this.state.stop.dish.amount + ' ⨉ Normal ret', alternative: this.state.stop.dish.amount + ' ⨉ Alternativ ret'}[this.state.stop.dish.type] : 'Ingen ret'}</Text>
+                  <Text style={styles.stopTextAddress}>{this.state.stop.sandwiches.amount != 0 ? this.state.stop.sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {this.state.stop.sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
                 </View>}
               </Tooltip>
               <View style={styles.hrLine}></View>
@@ -107,7 +106,7 @@ export default class RouteDestination extends React.Component {
               <Text style={styles.startButtonText}>Leveret</Text>
             </TouchableOpacity>
           </View>
-        </ScrollView>
+    </ScrollView>
       </SafeAreaView>
     );
   }
@@ -181,5 +180,9 @@ const styles = StyleSheet.create({
   startButtonText: {
     fontSize: 25,
     textAlign: 'center'
+  },
+  badge: {
+    backgroundColor: '#0f94d1',
+    padding: 2
   }
 });

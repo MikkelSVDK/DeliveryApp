@@ -36,8 +36,15 @@ export default class RouteNavigation extends React.Component {
       timeInterval: 5000
     }, location => {
       var metersToDestination = this.calculateDiffrence(location.coords.latitude, location.coords.longitude);
+
+      let buffer = this.state.metersToDestinationBuffer;
+      buffer.push(metersToDestination);
+      buffer = buffer.slice(-5);
       
-      this.setState({metersToDestination: metersToDestination});
+      this.setState({
+        metersToDestination: metersToDestination,
+        metersToDestinationBuffer: buffer
+      });
     });
 
     this.setState({watchPosition: watchPosition})
@@ -127,7 +134,17 @@ export default class RouteNavigation extends React.Component {
     if(state.route.name != this.state.route.name)
       this.props.navigation.setOptions({ title: this.state.route.name + ' rutevejledning' })
     
-    if(this.state.metersToDestination < 65 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
+    if(this.state.metersToDestination < 200 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
+      var lastLoc = this.state.metersToDestinationBuffer[0];
+      var firstLoc = this.state.metersToDestinationBuffer[this.state.metersToDestinationBuffer.length - 1];
+      
+      if((lastLoc - firstLoc) < 5 && (lastLoc - firstLoc) > -5){
+        this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate, stopId: this.state.currentStop.id});
+        this.setState({arrivedAtStop: true});
+      }
+    }
+
+    if(this.state.metersToDestination < 50 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
       this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate, stopId: this.state.currentStop.id});
       this.setState({arrivedAtStop: true});
     }
@@ -168,6 +185,7 @@ export default class RouteNavigation extends React.Component {
     },
     meta: {},
     metersToDestination: -1,
+    metersToDestinationBuffer: [] 
   }
 
   render(){
