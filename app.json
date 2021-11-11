@@ -2,7 +2,7 @@
   "expo": {
     "name": "Ryslinge Udbringning",
     "slug": "ryslinge-udbringning",
-    "version": "1.0.5",
+    "version": "1.0.7",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "splash": {
@@ -19,7 +19,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "dk.mikkelsv.ryslingeudbringning",
-      "buildNumber": "1.0.5"
+      "buildNumber": "1.0.7"
     },
     "android": {
       "adaptiveIcon": {
@@ -27,7 +27,7 @@
         "backgroundColor": "#FFFFFF"
       },
       "package": "dk.mikkelsv.ryslingeudbringning",
-      "versionCode": 6,
+      "versionCode": 8,
       "config": {
         "googleMaps": {
           "apiKey": "AIzaSyBn4xB2h8sryTUTYwLJpwHvytWQuE7VTeM"

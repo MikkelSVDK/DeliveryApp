@@ -134,11 +134,12 @@ export default class RouteNavigation extends React.Component {
     if(state.route.name != this.state.route.name)
       this.props.navigation.setOptions({ title: this.state.route.name + ' rutevejledning' })
     
-    if(this.state.metersToDestination < 200 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
+    console.log(this.state.metersToDestinationBuffer)
+    if(this.state.metersToDestination < 100 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
       var lastLoc = this.state.metersToDestinationBuffer[0];
       var firstLoc = this.state.metersToDestinationBuffer[this.state.metersToDestinationBuffer.length - 1];
       
-      if((lastLoc - firstLoc) < 5 && (lastLoc - firstLoc) > -5){
+      if((lastLoc - firstLoc) < 2 && (lastLoc - firstLoc) > -2){
         this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate, stopId: this.state.currentStop.id});
         this.setState({arrivedAtStop: true});
       }

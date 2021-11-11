@@ -96,6 +96,7 @@ export default class RouteView extends React.Component {
               {this.state.stops.map((stop, index) => {
                 return (
                   <View style={styles.stopView} key={`stop-${index}`}>
+                    <View style={[styles.badge, { backgroundColor: stop.delivered ? '#28a745' : '#dc3545', marginBottom: 15 }]}><Text style={{ color: '#fff', fontSize: 20, textAlign: 'center' }}>{stop.delivered ? 'Leveret' : 'Ikke Leveret'}</Text></View>
                     <Text style={styles.stopTextName}>{index + 1}. {stop.customer.name} {stop.customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
                     <Text style={styles.stopTextAddress}>{stop.customer.primary_address != null ? stop.customer.primary_address.formatted : "Ingen adresse"}</Text>
                     <View style={styles.hrLine}></View>
