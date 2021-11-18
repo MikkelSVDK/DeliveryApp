@@ -36,14 +36,10 @@ export default class RouteNavigation extends React.Component {
       timeInterval: 5000
     }, location => {
       var metersToDestination = this.calculateDiffrence(location.coords.latitude, location.coords.longitude);
-
-      let buffer = this.state.metersToDestinationBuffer;
-      buffer.push(metersToDestination);
-      buffer = buffer.slice(-5);
       
       this.setState({
         metersToDestination: metersToDestination,
-        metersToDestinationBuffer: buffer
+        speedToDestination: location.coords.speed
       });
     });
 
@@ -68,9 +64,13 @@ export default class RouteNavigation extends React.Component {
     axios.get('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId + '/' + this.props.route.params.planDate + '/stop').then(res => {
       if(res.data.success){
         this.setState(res.data.data)
-        let currentStop = res.data.data.stops.find(s => s.delivered == 0)
-        if(currentStop != null)
-          this.setState({currentStop: currentStop})
+
+        let currentStopIndex = res.data.data.stops.findIndex(s => s.delivered == 0)
+        if(currentStopIndex != -1)
+          this.setState({
+            currentStop: res.data.data.stops[currentStopIndex],
+            currentStopIndex: currentStopIndex
+          })
         else
           this.setState({currentStop: { customer: { primary_address: { formatted: 'completed', geometry: { lat: 0, lng: 0 }}}}})
         
@@ -134,18 +134,9 @@ export default class RouteNavigation extends React.Component {
     if(state.route.name != this.state.route.name)
       this.props.navigation.setOptions({ title: this.state.route.name + ' rutevejledning' })
     
-    console.log(this.state.metersToDestinationBuffer)
-    if(this.state.metersToDestination < 100 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
-      var lastLoc = this.state.metersToDestinationBuffer[0];
-      var firstLoc = this.state.metersToDestinationBuffer[this.state.metersToDestinationBuffer.length - 1];
-      
-      if((lastLoc - firstLoc) < 2 && (lastLoc - firstLoc) > -2){
-        this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate, stopId: this.state.currentStop.id});
-        this.setState({arrivedAtStop: true});
-      }
-    }
+    console.log(this.state.speedToDestination)
 
-    if(this.state.metersToDestination < 50 && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
+    if((this.state.metersToDestination < 50 || (this.state.metersToDestination < 100 && this.state.speedToDestination < 1.39)) && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
       this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate, stopId: this.state.currentStop.id});
       this.setState({arrivedAtStop: true});
     }
@@ -174,6 +165,10 @@ export default class RouteNavigation extends React.Component {
     route: {},
     stops: [],
     currentStop: {
+      sandwiches: {
+        amount: 0,
+        special: false,
+      },
       customer: {
         primary_address: {
           formatted: '...',
@@ -184,9 +179,10 @@ export default class RouteNavigation extends React.Component {
         }
       }
     },
+    currentStopIndex: 0,
     meta: {},
     metersToDestination: -1,
-    metersToDestinationBuffer: [] 
+    speedToDestination: 0,
   }
 
   render(){
@@ -207,10 +203,13 @@ export default class RouteNavigation extends React.Component {
           <View style={styles.hrLine}>
             <Text style={{position: 'absolute', top: 0, right: 0, fontSize: 10}}>{this.state.metersToDestination > 1000 ? (Math.round(this.state.metersToDestination / 100) / 10) + ' KM' : (Math.round(this.state.metersToDestination * 10) / 10) + ' M'}</Text>
           </View>
-          <Text>Navn:</Text>
-          <Text style={[styles.stopInfo, {marginBottom: 10}]}>{this.state.currentStop.customer.name || '...'}</Text>
-          <Text>Adresse:</Text>
-          <Text style={styles.stopInfo}>{this.state.currentStop.customer.primary_address.formatted || '...'}</Text>
+          <View style={styles.stopView}>
+            <Text style={styles.stopTextName}>{this.state.currentStopIndex + 1}. {this.state.currentStop.customer.name} {this.state.currentStop.customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
+            <Text style={styles.stopTextAddress}>{this.state.currentStop.customer.primary_address != null ? this.state.currentStop.customer.primary_address.formatted : "Ingen adresse"}</Text>
+            <View style={styles.hrLine}></View>
+            <Text style={styles.stopTextAddress}>{this.state.currentStop.dish != null ? {normal: this.state.currentStop.dish.amount + ' ⨉ Normal ret', alternative: this.state.currentStop.dish.amount + ' ⨉ Alternativ ret'}[this.state.currentStop.dish.type] : 'Ingen ret'}</Text>
+            <Text style={styles.stopTextAddress}>{this.state.currentStop.sandwiches.amount != 0 ? this.state.currentStop.sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {this.state.currentStop.sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -248,5 +247,22 @@ const styles = StyleSheet.create({
   },
   stopInfo: {
     fontSize: 18
+  },
+  stopView: {
+    backgroundColor: '#fff',
+    marginVertical: 5,
+    minHeight: 85,
+    paddingHorizontal: 15,
+    paddingVertical: 20
+  },
+  stopTextName: {
+    fontSize: 20
+  },
+  stopTextAddress: {
+    fontSize: 18
+  },
+  badge: {
+    backgroundColor: '#0f94d1',
+    padding: 2
   }
 });
