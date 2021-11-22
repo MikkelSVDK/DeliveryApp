@@ -72,7 +72,7 @@ export default class RouteNavigation extends React.Component {
             currentStopIndex: currentStopIndex
           })
         else
-          this.setState({currentStop: { customer: { primary_address: { formatted: 'completed', geometry: { lat: 0, lng: 0 }}}}})
+          this.setState({currentStop: { sandwiches: { amount: 0, special: false }, customer: { primary_address: { formatted: 'completed', geometry: { lat: 0, lng: 0 }}}}})
         
         this.setState({mapLoading: true})
       }
@@ -136,7 +136,7 @@ export default class RouteNavigation extends React.Component {
     
     console.log(this.state.speedToDestination)
 
-    if((this.state.metersToDestination < 50 || (this.state.metersToDestination < 100 && this.state.speedToDestination < 1.39)) && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
+    if((this.state.metersToDestination < 50 || (this.state.metersToDestination < 100 && this.state.speedToDestination <= 1.39)) && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
       this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate, stopId: this.state.currentStop.id});
       this.setState({arrivedAtStop: true});
     }
