@@ -9,13 +9,7 @@ import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 
 export default class RouteDestination extends React.Component {
-  signOut(){
-    SecureStore.deleteItemAsync("sessionToken");
-    delete axios.defaults.headers.common['Authorization']
-    this.props.navigation.navigate('SignIn');
-  }
-  
-  updateRouteStop(){
+  /*updateRouteStop(){
     axios.get('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId + '/' + this.props.route.params.planDate + '/stop/' + this.props.route.params.stopId).then(res => {
       if(res.data.success){
         this.setState({stop: res.data.data});
@@ -26,19 +20,18 @@ export default class RouteDestination extends React.Component {
           this.signOut();
       }
     });
-  }
+  }*/
 
   foodDelivered(){
-    axios.put('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId + '/' + this.props.route.params.planDate + '/stop/' + this.props.route.params.stopId + '/delivered').then(res => {
-      if(res.data.success)
-        this.props.navigation.navigate("RouteNavigation", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate});
+    axios.put('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.data.route.id + '/' + this.props.route.params.data.current_plan + '/stop/' + this.props.route.params.data.stops[this.props.route.params.currentStopIndex].id + '/delivered').then(res => {
+      if(res.data.success){
+        this.props.route.params.data.stops[this.props.route.params.currentStopIndex].delivered = true;
+        this.props.navigation.goBack();
+      }
+    }).catch(e => {
+      this.props.route.params.data.stops[this.props.route.params.currentStopIndex].delivered = true;
+      this.props.navigation.goBack();
     });
-  }
-
-  onRefresh(){
-    this.setState({refreshing: true})
-    
-    this.updateRouteStop()
   }
 
   handleBackButton() {
@@ -47,14 +40,14 @@ export default class RouteDestination extends React.Component {
   }
 
   componentDidMount(){
+    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
+
     SecureStore.getItemAsync("sessionToken").then(token => {
       if(token != null)
         axios.defaults.headers.common['Authorization'] = "Bearer " + token;
-      
-      this.updateRouteStop();
     });
-    
-    BackHandler.addEventListener('hardwareBackPress', this.handleBackButton);
+
+    // AAA
   }
 
   componentWillUnmount() {
@@ -62,14 +55,6 @@ export default class RouteDestination extends React.Component {
   }
 
   state = {
-    stop: {
-      sandwiches: {},
-      dish: {},
-      customer: {
-        primary_address: {}
-      }
-    },
-    selectedDish: {},
     dishToolTipVisible: false,
     refreshing: false
   }
@@ -78,23 +63,23 @@ export default class RouteDestination extends React.Component {
     return (
       <SafeAreaView style={{ flex:1 }}>
         <Text style={styles.topText}>Ankommet til</Text>
-        <Text style={styles.address}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.primary_address.formatted : '...'}</Text>
+        <Text style={styles.address}>{this.props.route.params.data.stops[this.props.route.params.currentStopIndex].customer.primary_address.formatted}</Text>
         <View style={styles.hrLine}></View>
-        <ScrollView refreshControl={<RefreshControl refreshing={this.state.refreshing} onRefresh={() => this.onRefresh()} />} keyboardShouldPersistTaps="handled">
+        <ScrollView keyboardShouldPersistTaps="handled">
           <View style={{maxHeight:288}}>
             <View style={[styles.container, {flexGrow:0}]} keyboardShouldPersistTaps="handled">
-              <Tooltip topAdjustment={Platform.OS === "android" ? -24 : 0} isVisible={this.state.dishToolTipVisible} content={<Text>{this.state.stop.comment || 'Ingen kommentar'}</Text>} placement="top" onClose={() => this.setState({ dishToolTipVisible: false })} >
-                {this.state.stop.comment != null ? <TouchableOpacity onPress={() => this.setState({ dishToolTipVisible: true })} style={styles.stopView}>
-                  <Text style={styles.stopTextName}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.name : '...'} {this.state.stop.customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
+              <Tooltip topAdjustment={Platform.OS === "android" ? -24 : 0} isVisible={this.state.dishToolTipVisible} content={<Text>{this.props.route.params.data.stops[this.props.route.params.currentStopIndex].comment || 'Ingen kommentar'}</Text>} placement="top" onClose={() => this.setState({ dishToolTipVisible: false })} >
+                {this.props.route.params.data.stops[this.props.route.params.currentStopIndex].comment != null ? <TouchableOpacity onPress={() => this.setState({ dishToolTipVisible: true })} style={styles.stopView}>
+                  <Text style={styles.stopTextName}>{this.props.route.params.data.stops[this.props.route.params.currentStopIndex].customer.name} {this.props.route.params.data.stops[this.props.route.params.currentStopIndex].customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
                   <View style={styles.hrLine}></View>
-                  <Text style={styles.stopTextAddress}>{this.state.stop.dish != null ? {normal: this.state.stop.dish.amount + ' ⨉ Normal ret', alternative: this.state.stop.dish.amount + ' ⨉ Alternativ ret'}[this.state.stop.dish.type] : 'Ingen ret'}</Text>
-                  <Text style={styles.stopTextAddress}>{this.state.stop.sandwiches.amount != 0 ? this.state.stop.sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {this.state.stop.sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
+                  <Text style={styles.stopTextAddress}>{this.props.route.params.data.stops[this.props.route.params.currentStopIndex].dish != null ? {normal: this.props.route.params.data.stops[this.props.route.params.currentStopIndex].dish.amount + ' ⨉ Normal ret', alternative: this.props.route.params.data.stops[this.props.route.params.currentStopIndex].dish.amount + ' ⨉ Alternativ ret'}[this.props.route.params.data.stops[this.props.route.params.currentStopIndex].dish.type] : 'Ingen ret'}</Text>
+                  <Text style={styles.stopTextAddress}>{this.props.route.params.data.stops[this.props.route.params.currentStopIndex].sandwiches.amount != 0 ? this.props.route.params.data.stops[this.props.route.params.currentStopIndex].sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {this.props.route.params.data.stops[this.props.route.params.currentStopIndex].sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
                   <Ionicons style={{position: 'absolute', right: 10, top: 10}} name="information-circle-sharp" size={24} color="black" />
                 </TouchableOpacity> : <View style={styles.stopView}>
-                  <Text style={styles.stopTextName}>{Object.keys(this.state.stop).length > 0 ? this.state.stop.customer.name : '...'} {this.state.stop.customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
+                  <Text style={styles.stopTextName}>{this.props.route.params.data.stops[this.props.route.params.currentStopIndex].customer.name} {this.props.route.params.data.stops[this.props.route.params.currentStopIndex].customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
                   <View style={styles.hrLine}></View>
-                  <Text style={styles.stopTextAddress}>{this.state.stop.dish != null ? {normal: this.state.stop.dish.amount + ' ⨉ Normal ret', alternative: this.state.stop.dish.amount + ' ⨉ Alternativ ret'}[this.state.stop.dish.type] : 'Ingen ret'}</Text>
-                  <Text style={styles.stopTextAddress}>{this.state.stop.sandwiches.amount != 0 ? this.state.stop.sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {this.state.stop.sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
+                  <Text style={styles.stopTextAddress}>{this.props.route.params.data.stops[this.props.route.params.currentStopIndex].dish != null ? {normal: this.props.route.params.data.stops[this.props.route.params.currentStopIndex].dish.amount + ' ⨉ Normal ret', alternative: this.props.route.params.data.stops[this.props.route.params.currentStopIndex].dish.amount + ' ⨉ Alternativ ret'}[this.props.route.params.data.stops[this.props.route.params.currentStopIndex].dish.type] : 'Ingen ret'}</Text>
+                  <Text style={styles.stopTextAddress}>{this.props.route.params.data.stops[this.props.route.params.currentStopIndex].sandwiches.amount != 0 ? this.props.route.params.data.stops[this.props.route.params.currentStopIndex].sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {this.props.route.params.data.stops[this.props.route.params.currentStopIndex].sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
                 </View>}
               </Tooltip>
               <View style={styles.hrLine}></View>

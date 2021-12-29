@@ -37,7 +37,7 @@ export default class RouteView extends React.Component {
   }
 
   startRouteNavigation(){
-    this.props.navigation.navigate("RouteNavigation", {routeId: this.state.route.id, planDate: this.state.current_plan});
+    this.props.navigation.navigate("RouteNavigation", this.state);
   }
 
   componentDidMount(){
@@ -47,6 +47,13 @@ export default class RouteView extends React.Component {
     });
 
     this.updateRoute();
+
+    this.willFocusSubscription = this.props.navigation.addListener(
+      'focus',
+      () => {
+        this.setState({is_updated:true});
+      }
+    );
 
     this.props.navigation.setOptions({
       headerRight: () => (
@@ -60,6 +67,10 @@ export default class RouteView extends React.Component {
   componentDidUpdate(prop, state){
     if(state.route.name != this.state.route.name)
       this.props.navigation.setOptions({ title: this.state.route.name + ' rute' })
+  }
+
+  componentWillUnmount() {
+    this.willFocusSubscription();
   }
 
   state = {
