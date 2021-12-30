@@ -38,8 +38,8 @@ export default class RouteView extends React.Component {
                       id: 1,
                       profile: "driving-car",
                       start: [
-                        10.528763,
-                        55.229946
+                        res.data.data.stops[0].customer.primary_address.geometry.lng,
+                        res.data.data.stops[0].customer.primary_address.geometry.lat
                       ]
                     }
                   ]
