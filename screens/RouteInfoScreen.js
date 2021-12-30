@@ -28,7 +28,58 @@ export default class RouteView extends React.Component {
         if(this.state.current_plan != null){
           axios.get('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId + '/' + this.state.current_plan + '/stop').then(res => {
             if(res.data.success){
-              this.setState(res.data.data);
+
+              if(res.data.data.stops.length > 1){
+                // Optimization object
+                let optimize = {
+                  jobs: [],
+                  vehicles: [
+                    {
+                      id: 1,
+                      profile: "driving-car",
+                      start: [
+                        10.528763,
+                        55.229946
+                      ]
+                    }
+                  ]
+                };
+
+                for (var i = 0; i < res.data.data.stops.length; i++) {
+                  const stop = res.data.data.stops[i];
+                  
+                  optimize.jobs.push({
+                    id: stop.id,
+                    service: 90,
+                    location: [
+                      stop.customer.primary_address.geometry.lng,
+                      stop.customer.primary_address.geometry.lat
+                    ]
+                  });
+                }
+
+                axios.post('https://api.openrouteservice.org/optimization', optimize, {
+                  headers: {
+                    'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+                    'Authorization': '5b3ce3597851110001cf62480badd745b7524db9bd7bfa472578d43d',
+                    'Content-Type': 'application/json; charset=utf-8'
+                  }
+                }).then(optRes => {
+                  for (var i = 0; i < optRes.data.routes[0].steps.length; i++) {
+                    const step = optRes.data.routes[0].steps[i];
+                    if(step.type == 'job'){
+                      const stopIndex = res.data.data.stops.findIndex(s => s.id == step.id);
+                      res.data.data.stops[stopIndex].delivery_order = i;
+                    }
+                  }
+                  res.data.data.stops.sort((a, b) => a.delivery_order - b.delivery_order);
+                  
+                  this.setState(res.data.data);
+                }).catch(e => {
+                  this.setState(res.data.data);
+                })
+              }else
+                this.setState(res.data.data);
             }
           });
         }
