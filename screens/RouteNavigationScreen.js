@@ -98,7 +98,7 @@ export default class RouteNavigation extends React.Component {
 
     this.navigationListener = this.props.navigation.addListener('focus', () => {
       // Find current stop on route
-      this.setState({arrivedAtStop: false, currentStopIndex: this.props.route.params.stops.findIndex(s => s.delivered == 0)});
+      this.setState({arrivedAtStop: false, currentStopIndex: this.props.route.params.stops.findIndex(s => s.delivered == 0), startTimeStamp: Date.now()});
     });
   }
 
@@ -107,26 +107,16 @@ export default class RouteNavigation extends React.Component {
       if(this.state.currentStopIndex != -1){
         // Check distance to destination
         if((this.state.metersToDestination < 50 || (this.state.metersToDestination < 100 && this.state.speedToDestination <= 1.39)) && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
-          this.props.navigation.navigate("RouteDestination", {data: this.props.route.params, currentStopIndex: this.state.currentStopIndex});
-          this.setState({arrivedAtStop: true});
+          if(Math.floor((Date.now() - this.state.startTimeStamp) / 1000) > 9){
+            this.props.navigation.navigate("RouteDestination", {data: this.props.route.params, currentStopIndex: this.state.currentStopIndex});
+            this.setState({arrivedAtStop: true});
+          }
         }
       }else{
         // Route finished
         this.props.navigation.navigate("RouteCompleted");
       }
     }
-    /*if(state.route.name != this.state.route.name)
-      this.props.navigation.setOptions({ title: this.state.route.name + ' rutevejledning' })*/
-    
-    //console.log(this.state.speedToDestination)
-
-    /*if((this.state.metersToDestination < 50 || (this.state.metersToDestination < 100 && this.state.speedToDestination <= 1.39)) && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
-      this.props.navigation.navigate("RouteDestination", {routeId: this.props.route.params.routeId, planDate: this.props.route.params.planDate, stopId: this.state.currentStop.id});
-      this.setState({arrivedAtStop: true});
-    }
-
-    if(this.state.currentStop.customer.primary_address.formatted == 'completed')
-      this.props.navigation.navigate("RouteCompleted");*/
   }
 
   componentWillUnmount(){
@@ -142,8 +132,9 @@ export default class RouteNavigation extends React.Component {
     errorMsg: '',
     arrivedAtStop: false,
     currentStopIndex: null,
+    startTimeStamp: -1,
     metersToDestination: -1,
-    speedToDestination: -1,
+    speedToDestination: -1
   }
 
   render(){
