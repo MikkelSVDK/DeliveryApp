@@ -70,6 +70,22 @@ export default class RouteNavigation extends React.Component {
     getDirections(data)
   }
 
+  updateMap(coordinate){
+    let lat = (this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat + coordinate.latitude) / 2,
+     latDelta = this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat - coordinate.latitude,
+     lng = (this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng + coordinate.longitude) / 2,
+     lngDelta = this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng - coordinate.longitude;
+
+    this.setState({
+      mapRegion: {
+        latitude: lat,
+        longitude: lng,
+        latitudeDelta: latDelta * 1.3,
+        longitudeDelta: lngDelta * 1.3,
+      }
+    })
+  }
+
   componentDidMount(){
     activateKeepAwake();
 
@@ -107,7 +123,7 @@ export default class RouteNavigation extends React.Component {
       if(this.state.currentStopIndex != -1){
         // Check distance to destination
         if((this.state.metersToDestination < 50 || (this.state.metersToDestination < 100 && this.state.speedToDestination <= 1.39)) && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
-          if(Math.floor((Date.now() - this.state.startTimeStamp) / 1000) > 9){
+          if(Math.floor((Date.now() - this.state.startTimeStamp) / 1000) > 14){
             this.props.navigation.navigate("RouteDestination", {data: this.props.route.params, currentStopIndex: this.state.currentStopIndex});
             this.setState({arrivedAtStop: true});
           }
@@ -134,13 +150,19 @@ export default class RouteNavigation extends React.Component {
     currentStopIndex: null,
     startTimeStamp: -1,
     metersToDestination: -1,
-    speedToDestination: -1
+    speedToDestination: -1,
+    mapRegion: {
+      latitude: 0,
+      longitude: 0,
+      latitudeDelta: 0.02,
+      longitudeDelta: 0.02,
+    }
   }
 
   render(){
     return (
       <SafeAreaView style={{ flex: 1 }}>
-        {this.state.currentStopIndex != null && this.state.currentStopIndex != -1 && <MapView mapType="hybrid" provider={PROVIDER_GOOGLE} showsUserLocation={true} userLocationPriority="high" showsTraffic={true} initialRegion={{ latitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat, longitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng, latitudeDelta: 0.002, longitudeDelta: 0.002 }} style={styles.map}>
+        {this.state.currentStopIndex != null && this.state.currentStopIndex != -1 && <MapView onUserLocationChange={event => this.updateMap(event.nativeEvent.coordinate)} region={this.state.mapRegion} mapType="hybrid" provider={PROVIDER_GOOGLE} showsUserLocation={true} showsTraffic={true} style={styles.map}>
           <Marker coordinate={{ latitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat, longitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng }} title={this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.formatted} />
         </MapView>}
         {this.state.errorMsg != '' && <View style={{position: 'absolute', width: '100%', top: 0}}>
