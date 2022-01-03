@@ -29,50 +29,25 @@ export default class RouteNavigation extends React.Component {
     ) * 60 * 1.1515 * 1.609344 * 1000;
   }
 
-  decodeMarkers(t, e) {
-    for (var n, o, u = 0, l = 0, r = 0, d = [], h = 0, i = 0, a = null, c = Math.pow(10, e || 5); u < t.length;) {
-      a = null, h = 0, i = 0;
-      do a = t.charCodeAt(u++) - 63, i |= (31 & a) << h, h += 5; while (a >= 32);
-      n = 1 & i ? ~(i >> 1) : i >> 1, h = i = 0;
-      do a = t.charCodeAt(u++) - 63, i |= (31 & a) << h, h += 5; while (a >= 32);
-      o = 1 & i ? ~(i >> 1) : i >> 1, l += n, r += o, d.push([l / c, r / c])
-    }
-    return d = d.map(function (t) {
-      return {
-        latitude: t[0],
-        longitude: t[1]
-      }
-    })
-  }
-
   getRoutePoints(origin, destination) {
-    console.log("-----getRoutePoints-----")    
-    const url = `https://maps.googleapis.com/maps/api/directions/json?origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&key=AIzaSyBObQk4vG4yDV2jEhqefWjiXMD7_c5F0E4&mode=driving`;
-    console.log("URL -- >>" + url);
+    axios.get(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf62480badd745b7524db9bd7bfa472578d43d&start=${origin.lng},${origin.lat}&end=${destination.lng},${destination.lat}`, {
+      headers: {
+        'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
+        'Content-Type': 'application/json; charset=utf-8'
+      }
+    }).then(optRes => {
+      let tempCords = [];
+      for (let i = 0; i < optRes.data.features[0].geometry.coordinates.length; i++) {
+        let coords = optRes.data.features[0].geometry.coordinates[i];
 
-    fetch(url)
-      .then(response => response.json())
-      .then(responseJson => {
-        console.log(responseJson);
-        if (responseJson.routes.length) {
-          var cortemp = this.decodeMarkers(responseJson.routes[0].overview_polyline.points) // definition below;
-          var length = cortemp.length - 1;
+        tempCords.push({
+          latitude: coords[1],
+          longitude: coords[0]
+        })
+      }
 
-          var tempMARKERS = []; 
-          tempMARKERS.push(cortemp[0]) ;   //start origin        
-          tempMARKERS.push(cortemp[length]); //only destination adding
-
-          console.log("tempMARKERS : " + JSON.stringify(tempMARKERS));
-
-          this.setState({
-            coords: cortemp,            
-            MARKERS:tempMARKERS,
-            destMarker : cortemp[length],
-            startMarker:cortemp[0],
-          });
-
-        }
-      }).catch(e => { console.warn(e) });
+      this.setState({coordinates: tempCords});
+    });
   }
 
   async startLocationWatch(){
@@ -207,6 +182,7 @@ export default class RouteNavigation extends React.Component {
     startTimeStamp: -1,
     metersToDestination: -1,
     speedToDestination: -1,
+    coordinates: [],
     mapRegion: {
       latitude: 0,
       longitude: 0,
@@ -219,10 +195,7 @@ export default class RouteNavigation extends React.Component {
     return (
       <SafeAreaView style={{ flex: 1 }}>
         {this.state.currentStopIndex != null && this.state.currentStopIndex != -1 && <MapView onUserLocationChange={event => this.updateMap(event.nativeEvent.coordinate)} region={this.state.mapRegion} mapType="hybrid" provider={PROVIDER_GOOGLE} showsUserLocation={true} showsTraffic={true} style={styles.map}>
-        < MapView.Polyline
-                coordinates={this.state.coords}
-                strokeWidth={4}
-              />
+        < MapView.Polyline coordinates={this.state.coordinates} strokeWidth={4} />
           <Marker coordinate={{ latitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat, longitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng }} title={this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.formatted} />
         </MapView>}
         {this.state.errorMsg != '' && <View style={{position: 'absolute', width: '100%', top: 0}}>
