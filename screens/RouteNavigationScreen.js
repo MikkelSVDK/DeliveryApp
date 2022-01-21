@@ -105,15 +105,23 @@ export default class RouteNavigation extends React.Component {
      latDelta = Math.abs(this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat - coordinate.latitude),
      lng = (this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng + coordinate.longitude) / 2,
      lngDelta = Math.abs(this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng - coordinate.longitude);
-
-    if(!this.state.freeMapCamera)
+    
+    if(this.state.mapCameraState == 0){
       this.mapRef.animateToRegion({
         latitude: lat,
         longitude: lng,
         latitudeDelta: latDelta * 1.3,
         longitudeDelta: lngDelta * 1.3,
       }, 1000);
-
+    }else if(this.state.mapCameraState == 1){
+      this.mapRef.animateToRegion({
+        latitude: coordinate.latitude,
+        longitude: coordinate.longitude,
+        latitudeDelta: Math.abs(0.001 * (coordinate.speed / 5)),
+        longitudeDelta: Math.abs(0.001 * (coordinate.speed / 5)),
+      }, 250);
+    }
+    
     // Temp region debug
     this.setState({region: {
       latitude: lat,
@@ -156,21 +164,6 @@ export default class RouteNavigation extends React.Component {
       // Get last position
       let position = await Location.getLastKnownPositionAsync();
 
-      // Check to see if next stop is close to current stop
-      var nextStopDiff = this.calculateDiffrence({
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
-      }, {
-        lat: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lat,
-        lng: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lng
-      });
-
-      // Change screen if next stop is within 50 meters
-      if(nextStopDiff < 50){
-        this.props.navigation.navigate("RouteDestination", {data: this.props.route.params, currentStopIndex: stopIndex});
-        this.setState({arrivedAtStop: true});
-      }
-
       // Get nearby stops
       for (let i = stopIndex + 1; i < this.props.route.params.stops.length; i++) {
         const stop = this.props.route.params.stops[i];
@@ -207,6 +200,21 @@ export default class RouteNavigation extends React.Component {
 
       // Update state
       this.setState({arrivedAtStop: false, currentStopIndex: stopIndex, startTimeStamp: Date.now()});
+
+      // Check to see if next stop is close to current stop
+      var nextStopDiff = this.calculateDiffrence({
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      }, {
+        lat: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lat,
+        lng: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lng
+      });
+      
+      // Change screen if next stop is within 50 meters
+      if(nextStopDiff < 50){
+        this.props.navigation.navigate("RouteDestination", {data: this.props.route.params, currentStopIndex: stopIndex});
+        this.setState({arrivedAtStop: true});
+      }
 
       // Call directions API
       this.getRoutePoints({lat: position.coords.latitude, lng: position.coords.longitude}, {lat: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lat, lng: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lng});
@@ -250,7 +258,7 @@ export default class RouteNavigation extends React.Component {
     metersToDestination: -1,
     speedToDestination: -1,
     coordinates: [],
-    freeMapCamera: false,
+    mapCameraState: 0,
     initialRegion: {
       latitude: 0,
       longitude: 0,
@@ -269,8 +277,8 @@ export default class RouteNavigation extends React.Component {
   render(){
     return (
       <SafeAreaView style={{ flex: 1 }}>
-        <TouchableOpacity onPress={() => this.setState({freeMapCamera: !this.state.freeMapCamera})} style={{position:'absolute',zIndex:2,right:12,top:10,backgroundColor:'white',padding:3,borderRadius:3}}>
-          <MaterialIcons name={!this.state.freeMapCamera ? 'my-location' : 'location-disabled'} size={24} color="black" />
+        <TouchableOpacity onPress={() => this.setState({mapCameraState: 2==this.state.mapCameraState?0:this.state.mapCameraState+1})} style={{position:'absolute',zIndex:2,right:12,top:10,backgroundColor:'white',padding:3,borderRadius:3}}>
+          <MaterialIcons name={this.state.mapCameraState == 0 ? 'location-searching' :  this.state.mapCameraState == 1 ? 'my-location' : 'location-disabled'} size={24} color="black" />
         </TouchableOpacity>
         {this.state.currentStopIndex != null && this.state.currentStopIndex != -1 && <MapView initialRegion={this.state.initialRegion} onUserLocationChange={event => this.updateMap(event.nativeEvent.coordinate)} mapType="hybrid" provider={PROVIDER_GOOGLE} showsUserLocation={true} showsTraffic={true} style={styles.map} ref={ref => {this.mapRef = ref; }} cacheEnabled>
         <MapView.Polyline coordinates={this.state.coordinates} strokeColor="#1A73E8" strokeWidth={4} />
