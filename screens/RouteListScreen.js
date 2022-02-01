@@ -65,9 +65,6 @@ export default class RouteList extends React.Component {
   render(){
     return (
       <SafeAreaView style={{ flex:1 }}>
-        <TouchableOpacity onPress={() => this.onRefresh()} style={styles.refreshButton}>
-          <Text style={styles.refreshButtonText}>Refresh</Text>
-        </TouchableOpacity>
         <Text style={styles.topText}>Rute Liste</Text>
         <View style={styles.hrLine}></View>
         <ScrollView refreshControl={<RefreshControl refreshing={this.state.refreshing} onRefresh={() => this.onRefresh()} />} style={styles.container} keyboardShouldPersistTaps="handled">
@@ -81,6 +78,7 @@ export default class RouteList extends React.Component {
             );
           })}
         </ScrollView>
+        <Button title="Log ud" onPress={() => this.signOut()} />
       </SafeAreaView>
     );
   }
@@ -92,16 +90,6 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     resizeMode: 'contain'
-  },
-  refreshButton: {
-    top: 55,
-    right: 23,
-    position: 'absolute',
-    zIndex: 1
-  },
-  refreshButtonText: {
-    fontSize: 18,
-    color: '#0f94d1',
   },
   hrLine:{
     borderBottomColor: '#ccc',

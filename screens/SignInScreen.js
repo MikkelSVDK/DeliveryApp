@@ -53,6 +53,11 @@ export default class SignIn extends React.Component {
       if(token != null)
         this.props.navigation.navigate('RouteList');
     });
+
+    this.props.navigation.addListener('focus', async () => {
+      this.employeeInput.clear();
+      this.passwordInput.clear();
+    });
   }
 
   render(){
@@ -60,8 +65,8 @@ export default class SignIn extends React.Component {
       <SafeAreaView>
         <Text style={styles.topText}>Log ind</Text>
         <ScrollView style={styles.container} keyboardShouldPersistTaps="handled">
-          <TextInput onChangeText={(employee) => this.setState({employee})} onBlur={() => this.setFocus('employee', false)} onFocus={() => this.setFocus('employee', true)} style={[styles.input, this.state.focus.employee ? styles.inputFocus : styles.inputNotFocus]} placeholder="Email adresse eller mobilnummer" />
-          <TextInput onChangeText={(password) => this.setState({password})} onBlur={() => this.setFocus('password', false)} onFocus={() => this.setFocus('password', true)} style={[styles.input, this.state.focus.password ? styles.inputFocus : styles.inputNotFocus]} secureTextEntry={true} placeholder="Adgangskode" />
+          <TextInput ref={input => { this.employeeInput = input }} onChangeText={(employee) => this.setState({employee})} onBlur={() => this.setFocus('employee', false)} onFocus={() => this.setFocus('employee', true)} style={[styles.input, this.state.focus.employee ? styles.inputFocus : styles.inputNotFocus]} placeholder="Email adresse eller mobilnummer" />
+          <TextInput ref={input => { this.passwordInput = input }} onChangeText={(password) => this.setState({password})} onBlur={() => this.setFocus('password', false)} onFocus={() => this.setFocus('password', true)} style={[styles.input, this.state.focus.password ? styles.inputFocus : styles.inputNotFocus]} secureTextEntry={true} placeholder="Adgangskode" />
           <Button title="Log ind" onPress={() => this.signIn()} />
         </ScrollView>
         <FlashMessage position="top" />
