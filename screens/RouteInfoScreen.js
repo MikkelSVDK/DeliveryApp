@@ -4,6 +4,9 @@ import { StyleSheet, Text, Button, TouchableOpacity, View, ScrollView, SafeAreaV
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 
+import StopView from './partials/StopView';
+import DishView from './partials/DishView';
+
 export default class RouteView extends React.Component {
   signOut(){
     SecureStore.deleteItemAsync("sessionToken");
@@ -137,36 +140,21 @@ export default class RouteView extends React.Component {
       return (
         <SafeAreaView style={{ flex:1 }}>
           <View style={styles.container}>
-            <Text style={styles.foodHeader}>Retter</Text>
+            <Text style={styles.header}>Retter</Text>
             <View style={styles.hrLine}></View>
             <View style={{maxHeight:190}}>
               <ScrollView style={{flexGrow:0}}>
-                {this.state.dishes.map((dish, index) => {
-                  return (
-                    <View style={styles.foodImageView} key={`dish-${index}`}>
-                      <Image style={styles.foodImage} source={{uri: dish.image}} />
-                      <Text style={styles.foodImageTextName}>{dish.name}</Text>
-                      <Text style={styles.foodImageTextType}>{this.state.meta.dish_count[dish.type]} ⨉ {{normal: 'Normal ret', alternative: 'Alternativ ret'}[dish.type]}</Text>
-                    </View>
-                  );
-                })}
+                {this.state.dishes.map((dish, index) => (
+                  <DishView dish={dish} count={this.state.meta.dish_count[dish.type]} key={index} />
+                ))}
               </ScrollView>
             </View>
-            <Text style={[styles.foodHeader, {marginTop: 10}]}>Stops</Text>
+            <Text style={[styles.header, {marginTop: 10}]}>Stops</Text>
             <View style={styles.hrLine}></View>
             <ScrollView>
-              {this.state.stops.map((stop, index) => {
-                return (
-                  <View style={styles.stopView} key={`stop-${index}`}>
-                    <View style={[styles.badge, { backgroundColor: stop.delivered ? '#28a745' : '#dc3545', marginBottom: 5, marginTop: -10 }]}><Text style={{ color: '#fff', fontSize: 20, textAlign: 'center' }}>{stop.delivered ? 'Leveret' : 'Ikke Leveret'}</Text></View>
-                    <Text style={styles.stopTextName}>{index + 1}. {stop.customer.name} {stop.customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
-                    <Text style={styles.stopTextAddress}>{stop.customer.primary_address != null ? stop.customer.primary_address.formatted : "Ingen adresse"}</Text>
-                    <View style={styles.hrLine}></View>
-                    <Text style={styles.stopTextAddress}>{stop.dish != null ? {normal: stop.dish.amount + ' ⨉ Normal ret', alternative: stop.dish.amount + ' ⨉ Alternativ ret'}[stop.dish.type] : 'Ingen ret'}</Text>
-                    <Text style={styles.stopTextAddress}>{stop.sandwiches.amount != 0 ? stop.sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {stop.sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
-                  </View>
-                );
-              })}
+              {this.state.stops.map((stop, index) => (
+                <StopView stop={stop} index={index} key={index} />
+              ))}
             </ScrollView>
             <TouchableOpacity style={styles.startButton} onPress={() => this.startRouteNavigation()}>
               <Text style={styles.startButtonText}>Start rutevejledning</Text>
@@ -202,45 +190,9 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: '#0f94d1',
   },
-  foodHeader: {
+  header: {
     fontSize: 20,
     marginBottom: -5
-  },
-  foodImage: {
-    width: 85,
-    height: 85,
-    marginRight: 10
-  },
-  foodImageTextName: {
-    top: 20,
-    left: 95,
-    position: 'absolute',
-    fontSize: 20
-  },
-  foodImageTextType: {
-    top: 45,
-    left: 95,
-    position: 'absolute',
-    fontSize: 18
-  },
-  foodImageView: {
-    backgroundColor: '#fff',
-    flex: 1,
-    marginVertical: 5,
-  },
-  stopView: {
-    backgroundColor: '#fff',
-    flex: 1,
-    marginVertical: 5,
-    minHeight: 85,
-    paddingHorizontal: 15,
-    paddingVertical: 20
-  },
-  stopTextName: {
-    fontSize: 20
-  },
-  stopTextAddress: {
-    fontSize: 18
   },
   errorContainer: {
     height: '90%',

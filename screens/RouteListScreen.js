@@ -6,13 +6,17 @@ const statusBarHeight = Constants.statusBarHeight
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 
+import RouteButton from './partials/RouteButton';
+
 export default class RouteList extends React.Component {
+  // Handle signout
   signOut(){
     SecureStore.deleteItemAsync("sessionToken");
     delete axios.defaults.headers.common['Authorization']
     this.props.navigation.navigate('SignIn');
   }
 
+  // Get available routes
   updateRoutes(){
     axios.get('https://api.delivery-ryslingefh.tk/v2/route').then(res => {
       if(res.data.success)
@@ -26,16 +30,14 @@ export default class RouteList extends React.Component {
     });
   }
 
+  // Refresh function
   onRefresh(){
     this.setState({refreshing: true})
     
     this.updateRoutes()
   }
 
-  viewRoute(route){
-    this.props.navigation.navigate("RouteInfo", {routeId: route});
-  }
-
+  // Callback for BackHandler event listener
   handleBackButton() {
     return true;
   }
@@ -68,15 +70,9 @@ export default class RouteList extends React.Component {
         <Text style={styles.topText}>Rute Liste</Text>
         <View style={styles.hrLine}></View>
         <ScrollView refreshControl={<RefreshControl refreshing={this.state.refreshing} onRefresh={() => this.onRefresh()} />} style={styles.container} keyboardShouldPersistTaps="handled">
-          {this.state.routes.map(route => {
-            return (
-              <TouchableOpacity key={`route-${route.id}`} onPress={() => this.viewRoute(route.id)} style={styles.routeButton}>
-                <Text style={styles.routeText}>
-                  {route.name}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
+          {this.state.routes.map(route =>  (
+            <RouteButton navigation={this.props.navigation} route={route} key={route.id} />
+          ))}
         </ScrollView>
         <Button title="Log ud" onPress={() => this.signOut()} />
       </SafeAreaView>
@@ -101,18 +97,5 @@ const styles = StyleSheet.create({
     marginBottom: 0,
     marginTop: Platform.OS === "android" ? statusBarHeight + 25 : 7,
     textAlign: 'center',
-  },
-  routeButton: {
-    marginBottom: 20,
-    borderColor: '#000',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    width: '100%',
-  },
-  routeText: {
-    fontSize: 25,
-    textAlign: 'center'
   }
 });

@@ -1,6 +1,5 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
-import getDirections from 'react-native-google-maps-directions';
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
 import { MaterialIcons } from '@expo/vector-icons'; 
 
@@ -12,21 +11,23 @@ import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
 import axios from 'axios';
 
+import StopView from './partials/StopView';
+
 export default class RouteNavigation extends React.Component {
   mapRef = null;
 
-  calculateDiffrence(location, destination){
+  calculateDiffrence(origin, destination){
     return (
       Math.acos( 
         Math.sin(
-          ( location.lat * Math.PI / 180 ) 
+          ( origin.lat * Math.PI / 180 ) 
         ) * Math.sin(
           ( destination.lat * Math.PI / 180 )
         ) + Math.cos(
-          ( location.lat * Math.PI / 180 ) 
+          ( origin.lat * Math.PI / 180 ) 
         ) * Math.cos( ( destination.lat * Math.PI / 180 ) 
         ) *  Math.cos( 
-          ( ( location.lng - destination.lng ) * Math.PI / 180 )
+          ( ( origin.lng - destination.lng ) * Math.PI / 180 )
         ) 
       ) * 180 / Math.PI 
     ) * 60 * 1.1515 * 1.609344 * 1000;
@@ -56,17 +57,18 @@ export default class RouteNavigation extends React.Component {
   async startLocationWatch(){
     this.watchPosition = await Location.watchPositionAsync({
       accuracy: 4,
-      distanceInterval: 1,
-      //timeInterval: 5000
+      distanceInterval: 1
     }, location => {
       if(this.state.currentStopIndex != null){
         if(this.state.currentStopIndex != -1){
+          const stopGeo = this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry;
+
           var metersToDestination = this.calculateDiffrence({
             lat: location.coords.latitude,
             lng: location.coords.longitude
           }, {
-            lat: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat,
-            lng: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng
+            lat: stopGeo.lat,
+            lng: stopGeo.lng
           });
           
           this.setState({
@@ -78,41 +80,25 @@ export default class RouteNavigation extends React.Component {
     });
   }
 
-  openGoogleMaps(){
-    const data = {
-      source: null,
-      destination: {
-        latitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat,
-        longitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng
-      },
-      params: [
-        {
-          key: "travelmode",
-          value: "driving"
-        },
-        {
-          key: "dir_action",
-          value: "navigate"
-        }
-      ]
+  calculateMapRegion(origin, destination){
+    return {
+      latitude: (origin.lat + destination.lat) / 2,
+      longitude: (origin.lng + destination.lng) / 2,
+      latitudeDelta: Math.abs(origin.lat - destination.lat) * 1.3,
+      longitudeDelta: Math.abs(origin.lng - destination.lng) * 1.3
     }
-
-    getDirections(data)
   }
 
   updateMap(coordinate){
-    let lat = (this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat + coordinate.latitude) / 2,
-     latDelta = Math.abs(this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat - coordinate.latitude),
-     lng = (this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng + coordinate.longitude) / 2,
-     lngDelta = Math.abs(this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng - coordinate.longitude);
+    const stopGeo = this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry;
+
+    let region = this.calculateMapRegion(stopGeo, {
+      lat: coordinate.latitude,
+      lng: coordinate.longitude
+    });
     
     if(this.state.mapCameraState == 0){
-      this.mapRef.animateToRegion({
-        latitude: lat,
-        longitude: lng,
-        latitudeDelta: latDelta * 1.3,
-        longitudeDelta: lngDelta * 1.3,
-      }, 1000);
+      this.mapRef.animateToRegion(region, 1000);
     }else if(this.state.mapCameraState == 1){
       this.mapRef.animateToRegion({
         latitude: coordinate.latitude,
@@ -121,14 +107,6 @@ export default class RouteNavigation extends React.Component {
         longitudeDelta: Math.abs(0.001 * (coordinate.speed / 5)),
       }, 250);
     }
-    
-    // Temp region debug
-    this.setState({region: {
-      latitude: lat,
-      longitude: lng,
-      latitudeDelta: latDelta * 1.3,
-      longitudeDelta: lngDelta * 1.3
-    }});
   }
 
   componentDidMount(){
@@ -161,6 +139,9 @@ export default class RouteNavigation extends React.Component {
       // Find current stop on route
       let stopIndex = this.props.route.params.stops.findIndex(s => s.delivered == 0);
 
+      // Set temporary variable for ease of access to the current stops address
+      const stopAddr = this.props.route.params.stops[stopIndex].customer.primary_address;
+
       // Get last position
       let position = await Location.getLastKnownPositionAsync();
 
@@ -169,14 +150,14 @@ export default class RouteNavigation extends React.Component {
         const stop = this.props.route.params.stops[i];
 
         var metersToDestination = this.calculateDiffrence({
-          lat: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lat,
-          lng: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lng
+          lat: stopAddr.geometry.lat,
+          lng: stopAddr.geometry.lng
         }, {
           lat: stop.customer.primary_address.geometry.lat,
           lng: stop.customer.primary_address.geometry.lng
         });
 
-        let currentStreetName = this.props.route.params.stops[stopIndex].customer.primary_address.formatted.replace(/[^a-zæøå]+[ 0-9][a-zæøå]?, [0-9]+ [a-zæøå]+/ig, ""),
+        let currentStreetName = stopAddr.formatted.replace(/[^a-zæøå]+[ 0-9][a-zæøå]?, [0-9]+ [a-zæøå]+/ig, ""),
          loopStreetName = stop.customer.primary_address.formatted.replace(/[^a-zæøå]+[ 0-9][a-zæøå]?, [0-9]+ [a-zæøå]+/ig, "");
         
         if(metersToDestination < 125 && currentStreetName == loopStreetName){
@@ -185,18 +166,13 @@ export default class RouteNavigation extends React.Component {
         }
       }
 
-      let lat = (this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lat + position.coords.latitude) / 2,
-       latDelta = Math.abs(this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lat - position.coords.latitude),
-       lng = (this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lng + position.coords.longitude) / 2,
-       lngDelta = Math.abs(this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lng - position.coords.longitude);
+      let region = this.calculateMapRegion(stopAddr.geometry, {
+        lat: position.coords.latitude,
+        lng: position.coords.longitude
+      });
 
       // Set initialRegion for MapView
-      this.setState({initialRegion: {
-        latitude: lat,
-        longitude: lng,
-        latitudeDelta: latDelta * 1.3,
-        longitudeDelta: lngDelta * 1.3
-      }});
+      this.setState({initialRegion: region});
 
       // Update state
       this.setState({arrivedAtStop: false, currentStopIndex: stopIndex, startTimeStamp: Date.now()});
@@ -206,8 +182,8 @@ export default class RouteNavigation extends React.Component {
         lat: position.coords.latitude,
         lng: position.coords.longitude
       }, {
-        lat: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lat,
-        lng: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lng
+        lat: stopAddr.geometry.lat,
+        lng: stopAddr.geometry.lng
       });
       
       // Change screen if next stop is within 50 meters
@@ -217,7 +193,13 @@ export default class RouteNavigation extends React.Component {
       }
 
       // Call directions API
-      this.getRoutePoints({lat: position.coords.latitude, lng: position.coords.longitude}, {lat: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lat, lng: this.props.route.params.stops[stopIndex].customer.primary_address.geometry.lng});
+      this.getRoutePoints({
+        lat: position.coords.latitude, 
+        lng: position.coords.longitude
+      }, {
+        lat: stopAddr.geometry.lat, 
+        lng: stopAddr.geometry.lng
+      });
     });
   }
 
@@ -248,8 +230,6 @@ export default class RouteNavigation extends React.Component {
   }
 
   state = {
-    debugCounter: 0,
-    debugMode: false,
     errorMsg: '',
     arrivedAtStop: false,
     currentStopIndex: null,
@@ -264,61 +244,50 @@ export default class RouteNavigation extends React.Component {
       longitude: 0,
       latitudeDelta: 0,
       longitudeDelta: 0
-    },
-    // Temp region debug
-    region: {
-      latitude: 0,
-      longitude: 0,
-      latitudeDelta: 0,
-      longitudeDelta: 0
     }
   }
 
   render(){
     return (
       <SafeAreaView style={{ flex: 1 }}>
-        <TouchableOpacity onPress={() => this.setState({mapCameraState: 2==this.state.mapCameraState?0:this.state.mapCameraState+1})} style={{position:'absolute',zIndex:2,right:12,top:10,backgroundColor:'white',padding:3,borderRadius:3}}>
-          <MaterialIcons name={this.state.mapCameraState == 0 ? 'location-searching' :  this.state.mapCameraState == 1 ? 'my-location' : 'location-disabled'} size={24} color="black" />
+        <TouchableOpacity onPress={() => this.setState({mapCameraState: 2==this.state.mapCameraState?0:this.state.mapCameraState+1})} style={styles.mapButton}>
+          <MaterialIcons 
+            name={this.state.mapCameraState == 0 ? 'location-searching' :  this.state.mapCameraState == 1 ? 'my-location' : 'location-disabled'} 
+            size={24} 
+            color="black" />
         </TouchableOpacity>
-        {this.state.currentStopIndex != null && this.state.currentStopIndex != -1 && <MapView initialRegion={this.state.initialRegion} onUserLocationChange={event => this.updateMap(event.nativeEvent.coordinate)} mapType="hybrid" provider={PROVIDER_GOOGLE} showsUserLocation={true} showsTraffic={true} style={styles.map} ref={ref => {this.mapRef = ref; }} cacheEnabled>
+        {this.state.currentStopIndex != null && this.state.currentStopIndex != -1 && 
+          <MapView 
+            initialRegion={this.state.initialRegion} 
+            onUserLocationChange={event => this.updateMap(event.nativeEvent.coordinate)} 
+            mapType="hybrid" 
+            provider={PROVIDER_GOOGLE} 
+            showsUserLocation={true} 
+            showsTraffic={true} 
+            style={styles.map} 
+            ref={ref => {this.mapRef = ref; }} 
+            cacheEnabled>
         <MapView.Polyline coordinates={this.state.coordinates} strokeColor="#1A73E8" strokeWidth={4} />
-          <Marker coordinate={{ latitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat, longitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng }} title={this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.formatted} />
+          <Marker 
+            coordinate={{ 
+              latitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lat, 
+              longitude: this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry.lng 
+            }} 
+            title={this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.formatted} />
         </MapView>}
         {this.state.errorMsg != '' && <View style={{position: 'absolute', width: '100%', top: 0}}>
-            <View style={{backgroundColor: 'red', padding: 12}}>
-              <Text style={{color: 'white', textAlign: 'center', fontSize: 18}}>{this.state.errorMsg}</Text>
-            </View>
-          </View>}
-          {this.state.currentStopIndex != null && this.state.currentStopIndex != -1 && <View style={{ margin: 10 }}>
-          {/*<TouchableOpacity style={styles.startNaviButton} onPress={() => this.openGoogleMaps()}>
-            <Text style={styles.startNaviButtonText}>Åben rutevejledning i Google Maps</Text>
-          </TouchableOpacity>*/}
-          <View style={styles.hrLine}>
-            {this.state.debugMode && <><Text style={{position: 'absolute', top: -11, right: 0, fontSize: 10}}>{this.state.currentStopIndex != 0 ? (((this.state.currentStopIndex) / this.props.route.params.stops.length) * 100).toFixed(1) : '0.0'}%</Text>
-            <Text style={{position: 'absolute', top: 0, right: 0, fontSize: 10}}>{this.state.metersToDestination > 1000 ? (Math.round(this.state.metersToDestination / 100) / 10) + ' KM' : (Math.round(this.state.metersToDestination * 10) / 10) + ' M'}</Text>
-            <Text style={{position: 'absolute', top: -11, left: 0, fontSize: 10}}>LAT: {this.state.region.latitude} | LNG: {this.state.region.longitude}</Text>
-            <Text style={{position: 'absolute', top: 0, left: 0, fontSize: 10}}>LATΔ: {this.state.region.latitudeDelta} | LNGΔ: {this.state.region.longitudeDelta}</Text></>}
+          <View style={{backgroundColor: 'red', padding: 12}}>
+            <Text style={{color: 'white', textAlign: 'center', fontSize: 18}}>{this.state.errorMsg}</Text>
           </View>
+        </View>}
+        {this.state.currentStopIndex != null && this.state.currentStopIndex != -1 && <View style={{ margin: 10 }}>
+          <View style={styles.hrLine} />
           <View style={{maxHeight:310, marginTop: 5}}>
-            <ScrollView style={{flexGrow:0}} onScrollEndDrag={() => this.state.debugMode||(this.state.debugCounter>19?this.setState({debugMode:!0}):this.setState({debugCounter:this.state.debugCounter+1}))}>
-              <View style={styles.stopView}>
-                <Text style={styles.stopTextName}>{this.state.currentStopIndex + 1}. {this.props.route.params.stops[this.state.currentStopIndex].customer.name} {this.props.route.params.stops[this.state.currentStopIndex].customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
-                <Text style={styles.stopTextAddress}>{this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address != null ? this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.formatted : "Ingen adresse"}</Text>
-                <View style={styles.hrLine}></View>
-                <Text style={styles.stopTextAddress}>{this.props.route.params.stops[this.state.currentStopIndex].dish != null ? {normal: this.props.route.params.stops[this.state.currentStopIndex].dish.amount + ' ⨉ Normal ret', alternative: this.props.route.params.stops[this.state.currentStopIndex].dish.amount + ' ⨉ Alternativ ret'}[this.props.route.params.stops[this.state.currentStopIndex].dish.type] : 'Ingen ret'}</Text>
-                <Text style={styles.stopTextAddress}>{this.props.route.params.stops[this.state.currentStopIndex].sandwiches.amount != 0 ? this.props.route.params.stops[this.state.currentStopIndex].sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {this.props.route.params.stops[this.state.currentStopIndex].sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
-              </View>
-              {this.state.nearStops.map((stop, index) => {
-                return (
-                  <View style={styles.stopView} key={`stop-${index}`}>
-                    <Text style={styles.stopTextName}>{this.state.currentStopIndex + index + 2}. {stop.customer.name} {stop.customer.diabetes ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11 }}>Sukkersyg</Text></View>: null }</Text>
-                    <Text style={styles.stopTextAddress}>{stop.customer.primary_address != null ? stop.customer.primary_address.formatted : "Ingen adresse"}</Text>
-                    <View style={styles.hrLine}></View>
-                    <Text style={styles.stopTextAddress}>{stop.dish != null ? {normal: stop.dish.amount + ' ⨉ Normal ret', alternative: stop.dish.amount + ' ⨉ Alternativ ret'}[stop.dish.type] : 'Ingen ret'}</Text>
-                    <Text style={styles.stopTextAddress}>{stop.sandwiches.amount != 0 ? stop.sandwiches.amount + ' ⨉ Håndmadder' : 'Ingen håndmadder'} {stop.sandwiches.special ? <View style={styles.badge}><Text style={{color: '#fff', fontSize: 11}}>Special af 18,-</Text></View>: null }</Text>
-                  </View>
-                );
-              })}
+            <ScrollView style={{flexGrow:0}}>
+              <StopView stop={this.props.route.params.stops[this.state.currentStopIndex]} index={this.state.currentStopIndex} />
+              {this.state.nearStops.map((stop, index) => (
+                <StopView stop={stop} index={this.state.currentStopIndex + index + 1} key={index} />
+              ))}
             </ScrollView>
           </View>
         </View>}
@@ -333,47 +302,17 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     marginVertical: 5
   },
-  topText: {
-    fontSize: 25,
-    marginBottom: 0,
-    marginTop: Platform.OS === "android" ? statusBarHeight + 25 : 7,
-    textAlign: 'center',
-  },
   map: {
     width: '100%',
     height: '50%'
   },
-  startNaviButton: {
-    marginBottom: 5,
-    borderColor: '#000',
-    borderWidth: 1,
-    borderRadius: 5,
-    paddingVertical: 5,
-    paddingHorizontal: 20,
-    width: '100%',
-  },
-  startNaviButtonText: {
-    fontSize: 18,
-    textAlign: 'center'
-  },
-  stopInfo: {
-    fontSize: 18
-  },
-  stopView: {
-    backgroundColor: '#fff',
-    marginVertical: 5,
-    minHeight: 85,
-    paddingHorizontal: 15,
-    paddingVertical: 20
-  },
-  stopTextName: {
-    fontSize: 20
-  },
-  stopTextAddress: {
-    fontSize: 18
-  },
-  badge: {
-    backgroundColor: '#0f94d1',
-    padding: 2
+  mapButton: {
+    position: 'absolute',
+    zIndex: 2,
+    right: 12,
+    top: 10,
+    backgroundColor: 'white',
+    padding: 3,
+    borderRadius: 3
   }
 });
