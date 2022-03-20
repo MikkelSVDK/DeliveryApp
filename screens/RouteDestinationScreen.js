@@ -1,7 +1,5 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet, Text, View, ScrollView, RefreshControl, TouchableOpacity, TextInput, BackHandler, ToastAndroid } from 'react-native';
-import Tooltip from 'react-native-walkthrough-tooltip';
-import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 const statusBarHeight = Constants.statusBarHeight
 
@@ -12,15 +10,32 @@ import StopView from './partials/StopView';
 
 export default class RouteDestination extends React.Component {
   foodDelivered(){
+    this.props.route.params.data.stops[this.props.route.params.currentStopIndex].delivered = true;
+    
+    // Add comment if any was written
+    if(this.state.comment){
+      this.props.route.params.data.stops[this.props.route.params.currentStopIndex].comment += `
+Leveringsnote: ` + this.state.comment;
+    }
+      
     const currentStop = this.props.route.params.data.stops[this.props.route.params.currentStopIndex];
 
     axios.put('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.data.route.id + '/' + this.props.route.params.data.current_plan + '/stop/' + currentStop.id + '/delivered').then(res => {
       if(res.data.success){
-        currentStop.delivered = true;
+        // App has internet access and can save comment
+        if(this.state.comment){
+          axios.put('https://api.delivery-ryslingefh.tk/v2/customer/' + currentStop.customer.id + '/plan/' + currentStop.id, {
+            comment: currentStop.comment + `
+Leveringsnote: ` + this.state.comment
+          })
+        }
+
         this.props.navigation.goBack();
       }
     }).catch(e => {
-      currentStop.delivered = true;
+      // App can't connect to the API - Try again when route is completed
+      this.props.route.params.data.stops[this.props.route.params.currentStopIndex].failedAPI = true;
+      
       this.props.navigation.goBack();
     });
   }
@@ -41,6 +56,10 @@ export default class RouteDestination extends React.Component {
 
   componentWillUnmount() {
     BackHandler.removeEventListener('hardwareBackPress', this.handleBackButton);
+  }
+
+  state = {
+    comment: ''
   }
 
   render(){

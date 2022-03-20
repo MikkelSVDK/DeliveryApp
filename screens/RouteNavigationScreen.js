@@ -215,7 +215,7 @@ export default class RouteNavigation extends React.Component {
         }
       }else{
         // Route finished
-        this.props.navigation.navigate("RouteCompleted");
+        this.props.navigation.navigate("RouteCompleted", {data: this.props.route.params});
       }
     }
   }
