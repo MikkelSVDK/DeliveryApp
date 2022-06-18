@@ -9,7 +9,7 @@ export default class StopView extends React.Component {
           <Text style={styles.badgeText}>{this.props.stop.delivered ? 'Leveret' : 'Ikke Leveret'}</Text>
         </View>*/}
         <Text style={styles.stopTextName}>
-          {this.props.index + 1}. {this.props.stop.customer.name} 
+          {this.props.index + 1}. {this.props.stop.customer.name} &nbsp;
           {this.props.stop.customer.diabetes && <View style={styles.badge}><Text style={styles.badgeText}>Sukkersyg</Text></View>}
         </Text>
         <Text style={styles.stopTextAddress}>
@@ -25,11 +25,12 @@ export default class StopView extends React.Component {
         </Text>
         <Text style={styles.stopTextAddress}>
           {this.props.stop.sandwiches.amount != 0 ? 
-            this.props.stop.sandwiches.amount + ' ⨉ Håndmadder' 
+            this.props.stop.sandwiches.amount + ' ⨉ Smørrebrød' 
           : 
-            'Ingen håndmadder'
+            'Ingen smørrebrød'
           } 
-          {this.props.stop.sandwiches.special && <View style={styles.badge}><Text style={styles.badgeText}>Special af 18,-</Text></View>}
+          &nbsp;
+          {this.props.stop.sandwiches.special && <View style={styles.badge}><Text style={styles.badgeText}>Special</Text></View>}
         </Text>
       </View>
     );
