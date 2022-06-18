@@ -31,8 +31,9 @@ export default class RouteView extends React.Component {
         if(this.state.current_plan != null){
           axios.get('https://api.delivery-ryslingefh.tk/v2/route/' + this.props.route.params.routeId + '/' + this.state.current_plan + '/stop').then(res => {
             if(res.data.success){
-
-              if(res.data.data.stops.length > 1){
+              this.setState(res.data.data);
+              
+              /*if(res.data.data.stops.length > 1){
                 // Optimization object
                 let optimize = {
                   jobs: [],
@@ -82,7 +83,7 @@ export default class RouteView extends React.Component {
                   this.setState(res.data.data);
                 })
               }else
-                this.setState(res.data.data);
+                this.setState(res.data.data);*/
             }
           });
         }
@@ -92,6 +93,10 @@ export default class RouteView extends React.Component {
 
   startRouteNavigation(){
     this.props.navigation.navigate("RouteNavigation", this.state);
+  }
+
+  showRouteList(){
+    this.props.navigation.navigate("RouteNavigationSimple", this.state);
   }
 
   componentDidMount(){
@@ -156,9 +161,14 @@ export default class RouteView extends React.Component {
                 <StopView stop={stop} index={index} key={index} />
               ))}
             </ScrollView>
-            <TouchableOpacity style={styles.startButton} onPress={() => this.startRouteNavigation()}>
+            <View style={{flexDirection: 'row'}}>
+            <TouchableOpacity style={[styles.startButton, {width: '71%', marginRight: 2.5}]} onPress={() => this.startRouteNavigation()}>
               <Text style={styles.startButtonText}>Start rutevejledning</Text>
             </TouchableOpacity>
+            <TouchableOpacity style={[styles.startButton, {width: '29%', marginLeft: 2.5}]} onPress={() => this.showRouteList()}>
+              <Text style={[styles.startButtonText, {fontSize: 23, marginTop: 1}]}>Liste</Text>
+            </TouchableOpacity>
+            </View>
           </View>
         </SafeAreaView>
       );
