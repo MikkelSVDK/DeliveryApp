@@ -5,7 +5,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 
 import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
 import Constants from 'expo-constants';
-const statusBarHeight = Constants.statusBarHeight
+const statusBarHeight = Constants.statusBarHeight;
+
+import decodePolyline from 'decode-google-map-polyline';
 
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
@@ -34,7 +36,24 @@ export default class RouteNavigation extends React.Component {
   }
 
   getRoutePoints(origin, destination) {
-    axios.get(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf62480badd745b7524db9bd7bfa472578d43d&start=${origin.lng},${origin.lat}&end=${destination.lng},${destination.lat}`, {
+    axios.get(`https://maps.googleapis.com/maps/api/directions/json?origin=${origin.lat},${origin.lng}&destination=${destination.lat},${destination.lng}&key=AIzaSyBObQk4vG4yDV2jEhqefWjiXMD7_c5F0E4`).then(polyRes => {
+      // Decode polylines from Google directions API
+      const decodedPolylines = decodePolyline(polyRes.data.routes[0].overview_polyline.points);
+
+      // Convert lat, lng to latitude, longitude
+      let tempCords = [];
+      decodedPolylines.forEach(pl => {
+        tempCords.push({
+          latitude: pl.lat,
+          longitude: pl.lng
+        });
+      });
+
+      // Update coordinates value
+      this.setState({coordinates: tempCords});
+    });
+    
+    /*axios.get(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf62480badd745b7524db9bd7bfa472578d43d&start=${origin.lng},${origin.lat}&end=${destination.lng},${destination.lat}`, {
       headers: {
         'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
         'Content-Type': 'application/json; charset=utf-8'
@@ -51,7 +70,7 @@ export default class RouteNavigation extends React.Component {
       }
 
       this.setState({coordinates: tempCords});
-    });
+    });*/
   }
 
   async startLocationWatch(){
@@ -139,6 +158,9 @@ export default class RouteNavigation extends React.Component {
       // Find current stop on route
       let stopIndex = this.props.route.params.stops.findIndex(s => s.delivered == 0);
 
+      if(stopIndex == -1)
+        return this.props.navigation.navigate("RouteCompleted", {data: this.props.route.params});
+
       // Set temporary variable for ease of access to the current stops address
       const stopAddr = this.props.route.params.stops[stopIndex].customer.primary_address;
 
@@ -207,7 +229,7 @@ export default class RouteNavigation extends React.Component {
     if(this.state.currentStopIndex != null){
       if(this.state.currentStopIndex != -1){
         // Check distance to destination
-        if((this.state.metersToDestination < 50 || (this.state.metersToDestination < 100 && this.state.speedToDestination <= 1.39)) && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
+        if((this.state.metersToDestination < 40 || (this.state.metersToDestination < 100 && this.state.speedToDestination <= 1.39)) && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
           if(Math.floor((Date.now() - this.state.startTimeStamp) / 1000) > 14){
             this.props.navigation.navigate("RouteDestination", {data: this.props.route.params, currentStopIndex: this.state.currentStopIndex});
             this.setState({arrivedAtStop: true});
@@ -263,7 +285,7 @@ export default class RouteNavigation extends React.Component {
             mapType="hybrid" 
             provider={PROVIDER_GOOGLE} 
             showsUserLocation={true} 
-            showsTraffic={true} 
+            showsTraffic={false} 
             style={styles.map} 
             ref={ref => {this.mapRef = ref; }} 
             cacheEnabled>
