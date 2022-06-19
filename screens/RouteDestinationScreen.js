@@ -70,21 +70,20 @@ Leveringsnote: ` + this.state.comment
         <Text style={styles.topText}>Ankommet til</Text>
         <Text style={styles.address}>{currentStop.customer.primary_address.formatted}</Text>
         <View style={styles.hrLine}></View>
-        <ScrollView keyboardShouldPersistTaps="handled">
-          <View style={{maxHeight:288}}>
-            <View style={[styles.container, {flexGrow:0}]} keyboardShouldPersistTaps="handled">
-              <Text>{currentStop.comment || 'Ingen kommentar'}</Text>
-              <StopView stop={currentStop} index={this.props.route.params.currentStopIndex} />
-              <View style={styles.hrLine}></View>
-              <TextInput placeholder="Kommentar til leveringen..." style={styles.input} numberOfLines={4} onChangeText={text => this.setState({ comment: text })} value={this.state.comment} multiline />
+        <View style={styles.container}>
+          <ScrollView keyboardShouldPersistTaps="handled">
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{currentStop.comment || 'Ingen kommentar'}</Text>
             </View>
-          </View>
-          <View style={{padding: 15}}>
-            <TouchableOpacity style={styles.deliveredButton} onPress={() => this.foodDelivered()}>
-              <Text style={styles.deliveredButtonText}>Leveret</Text>
-            </TouchableOpacity>
-          </View>
-    </ScrollView>
+            <StopView stop={currentStop} index={this.props.route.params.currentStopIndex} />
+            <View style={styles.hrLine}></View>
+            <TextInput placeholder="Kommentar til leveringen..." style={styles.input} numberOfLines={4} onChangeText={text => this.setState({ comment: text })} value={this.state.comment} multiline />
+
+              <TouchableOpacity style={styles.deliveredButton} onPress={() => this.foodDelivered()}>
+                <Text style={styles.deliveredButtonText}>Leveret</Text>
+              </TouchableOpacity>
+          </ScrollView>
+        </View>
       </SafeAreaView>
     );
   }
@@ -124,7 +123,7 @@ const styles = StyleSheet.create({
     borderColor: '#ccc'
   },
   deliveredButton: {
-    marginTop: -20,
+    marginTop: 5,
     borderColor: '#000',
     borderWidth: 1,
     borderRadius: 5,
@@ -132,8 +131,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     width: '100%',
   },
-  deliveredButton: {
+  deliveredButtonText: {
     fontSize: 25,
+    textAlign: 'center'
+  },
+  badge: {
+    backgroundColor: '#0f94d1',
+    padding: 2,
+  },
+  badgeText: {
+    color: '#fff',
+    fontSize: 20,
     textAlign: 'center'
   }
 });
