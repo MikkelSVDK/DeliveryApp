@@ -95,19 +95,21 @@ export default class RouteNavigation extends React.Component {
         for (let i = 0; i < this.props.route.params.stops.length; i++) {
           const loopStop = this.props.route.params.stops[i];
 
-          var metersToStop = this.calculateDiffrence({
-            lat: location.coords.latitude,
-            lng: location.coords.longitude
-          }, {
-            lat: loopStop.customer.primary_address.geometry.lat,
-            lng: loopStop.customer.primary_address.geometry.lng
-          });
+          if(!loopStop.delivered){
+            var metersToStop = this.calculateDiffrence({
+              lat: location.coords.latitude,
+              lng: location.coords.longitude
+            }, {
+              lat: loopStop.customer.primary_address.geometry.lat,
+              lng: loopStop.customer.primary_address.geometry.lng
+            });
 
-          if((metersToStop < 50 || (metersToStop < 100 && location.coords.speed <= 1.39)) && !this.state.arrivedAtStop){
-            if(Math.floor((Date.now() - this.state.startTimeStamp) / 1000) > 14){
-              this.props.navigation.navigate("RouteDestination", {data: this.props.route.params, currentStopIndex: i});
+            if((metersToStop < 40 || (metersToStop < 100 && location.coords.speed <= 1.39)) && !this.state.arrivedAtStop){
+              if(Math.floor((Date.now() - this.state.startTimeStamp) / 1000) > 14){
+                this.props.navigation.navigate("RouteDestination", {data: this.props.route.params, currentStopIndex: i});
 
-              this.setState({arrivedAtStop: true});
+                this.setState({arrivedAtStop: true});
+              }
             }
           }
         }
@@ -197,7 +199,7 @@ export default class RouteNavigation extends React.Component {
         let stopIndex = this.props.route.params.stops.findIndex(s => s.delivered == 0);
 
         this.ScrollView.scrollTo({ x: 0, y: StopList[stopIndex], animated: true })
-      }, 350);
+      }, 500);
 
       // Find current stop on route
       //let stopIndex = this.props.route.params.stops.findIndex(s => s.delivered == 0);
