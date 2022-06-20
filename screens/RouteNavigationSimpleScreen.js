@@ -1,12 +1,7 @@
 import React from 'react';
-import { SafeAreaView, StyleSheet, Text, View, ScrollView, TouchableOpacity } from 'react-native';
+import { SafeAreaView, StyleSheet, Text, View, ScrollView } from 'react-native';
 import { Col, Row, Grid } from "react-native-easy-grid";
 import { activateKeepAwake, deactivateKeepAwake } from 'expo-keep-awake';
-import { MaterialIcons } from '@expo/vector-icons'; 
-
-import MapView, { Marker, PROVIDER_GOOGLE } from 'react-native-maps';
-import Constants from 'expo-constants';
-const statusBarHeight = Constants.statusBarHeight
 
 import * as Location from 'expo-location';
 import * as SecureStore from 'expo-secure-store';
@@ -64,27 +59,6 @@ export default class RouteNavigation extends React.Component {
     ) * 60 * 1.1515 * 1.609344 * 1000;
   }
 
-  /*getRoutePoints(origin, destination) {
-    axios.get(`https://api.openrouteservice.org/v2/directions/driving-car?api_key=5b3ce3597851110001cf62480badd745b7524db9bd7bfa472578d43d&start=${origin.lng},${origin.lat}&end=${destination.lng},${destination.lat}`, {
-      headers: {
-        'Accept': 'application/json, application/geo+json, application/gpx+xml, img/png; charset=utf-8',
-        'Content-Type': 'application/json; charset=utf-8'
-      }
-    }).then(optRes => {
-      let tempCords = [];
-      for (let i = 0; i < optRes.data.features[0].geometry.coordinates.length; i++) {
-        let coords = optRes.data.features[0].geometry.coordinates[i];
-
-        tempCords.push({
-          latitude: coords[1],
-          longitude: coords[0]
-        })
-      }
-
-      this.setState({coordinates: tempCords});
-    });
-  }*/
-
   async startLocationWatch(){
     this.watchPosition = await Location.watchPositionAsync({
       accuracy: 4,
@@ -115,56 +89,8 @@ export default class RouteNavigation extends React.Component {
         }
       }else
         this.props.navigation.navigate("RouteCompleted", {data: this.props.route.params});
-
-      /*if(this.state.currentStopIndex != null){
-        if(this.state.currentStopIndex != -1){
-          const stopGeo = this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry;
-
-          var metersToDestination = this.calculateDiffrence({
-            lat: location.coords.latitude,
-            lng: location.coords.longitude
-          }, {
-            lat: stopGeo.lat,
-            lng: stopGeo.lng
-          });
-          
-          this.setState({
-            metersToDestination: metersToDestination,
-            speedToDestination: location.coords.speed
-          });
-        }
-      }*/
     });
   }
-
-  /*calculateMapRegion(origin, destination){
-    return {
-      latitude: (origin.lat + destination.lat) / 2,
-      longitude: (origin.lng + destination.lng) / 2,
-      latitudeDelta: Math.abs(origin.lat - destination.lat) * 1.3,
-      longitudeDelta: Math.abs(origin.lng - destination.lng) * 1.3
-    }
-  }*/
-
-  /*updateMap(coordinate){
-    const stopGeo = this.props.route.params.stops[this.state.currentStopIndex].customer.primary_address.geometry;
-
-    let region = this.calculateMapRegion(stopGeo, {
-      lat: coordinate.latitude,
-      lng: coordinate.longitude
-    });
-    
-    if(this.state.mapCameraState == 0){
-      this.mapRef.animateToRegion(region, 1000);
-    }else if(this.state.mapCameraState == 1){
-      this.mapRef.animateToRegion({
-        latitude: coordinate.latitude,
-        longitude: coordinate.longitude,
-        latitudeDelta: Math.abs(0.001 * (coordinate.speed / 5)),
-        longitudeDelta: Math.abs(0.001 * (coordinate.speed / 5)),
-      }, 250);
-    }
-  }*/
 
   componentDidMount(){
     activateKeepAwake();
@@ -195,94 +121,35 @@ export default class RouteNavigation extends React.Component {
     this.navigationListener = this.props.navigation.addListener('focus', async () => {
       this.setState({arrivedAtStop: false, startTimeStamp: Date.now()});
 
+      // Find current stop on route
+      let stopIndex = this.props.route.params.stops.findIndex(s => s.delivered == 0);
+
       setTimeout(() => {
-        let stopIndex = this.props.route.params.stops.findIndex(s => s.delivered == 0);
 
         this.ScrollView.scrollTo({ x: 0, y: StopList[stopIndex], animated: true })
       }, 500);
 
-      // Find current stop on route
-      //let stopIndex = this.props.route.params.stops.findIndex(s => s.delivered == 0);
+      // Get last position
+      let position = await Location.getLastKnownPositionAsync();
 
       // Set temporary variable for ease of access to the current stops address
-      //const stopAddr = this.props.route.params.stops[stopIndex].customer.primary_address;
-
-      // Get last position
-      //let position = await Location.getLastKnownPositionAsync();
-
-      // Get nearby stops
-      /*for (let i = stopIndex + 1; i < this.props.route.params.stops.length; i++) {
-        const stop = this.props.route.params.stops[i];
-
-        var metersToDestination = this.calculateDiffrence({
-          lat: stopAddr.geometry.lat,
-          lng: stopAddr.geometry.lng
-        }, {
-          lat: stop.customer.primary_address.geometry.lat,
-          lng: stop.customer.primary_address.geometry.lng
-        });
-
-        let currentStreetName = stopAddr.formatted.replace(/[^a-zæøå]+[ 0-9][a-zæøå]?, [0-9]+ [a-zæøå]+/ig, ""),
-         loopStreetName = stop.customer.primary_address.formatted.replace(/[^a-zæøå]+[ 0-9][a-zæøå]?, [0-9]+ [a-zæøå]+/ig, "");
-        
-        if(metersToDestination < 125 && currentStreetName == loopStreetName){
-          this.state.nearStops.push(this.props.route.params.stops[i])
-          this.setState({nearStops: this.state.nearStops});
-        }
-      }*/
-
-      /*let region = this.calculateMapRegion(stopAddr.geometry, {
-        lat: position.coords.latitude,
-        lng: position.coords.longitude
-      });*/
-
-      // Set initialRegion for MapView
-      //this.setState({initialRegion: region});
-
-      // Update state
-      //this.setState({arrivedAtStop: false, currentStopIndex: stopIndex, startTimeStamp: Date.now()});
+      const stopAddr = this.props.route.params.stops[stopIndex].customer.primary_address;
 
       // Check to see if next stop is close to current stop
-      /*var nextStopDiff = this.calculateDiffrence({
+      var nextStopDiff = this.calculateDiffrence({
         lat: position.coords.latitude,
         lng: position.coords.longitude
       }, {
         lat: stopAddr.geometry.lat,
         lng: stopAddr.geometry.lng
-      });*/
+      });
       
       // Change screen if next stop is within 50 meters
-      /*if(nextStopDiff < 50){
+      if(nextStopDiff < 40){
         this.props.navigation.navigate("RouteDestination", {data: this.props.route.params, currentStopIndex: stopIndex});
         this.setState({arrivedAtStop: true});
-      }*/
-
-      // Call directions API
-      /*this.getRoutePoints({
-        lat: position.coords.latitude, 
-        lng: position.coords.longitude
-      }, {
-        lat: stopAddr.geometry.lat, 
-        lng: stopAddr.geometry.lng
-      });*/
-    });
-  }
-
-  componentDidUpdate(prop, state){
-    /*if(this.state.currentStopIndex != null){
-      if(this.state.currentStopIndex != -1){
-        // Check distance to destination
-        if((this.state.metersToDestination < 50 || (this.state.metersToDestination < 100 && this.state.speedToDestination <= 1.39)) && this.state.metersToDestination != -1 && !this.state.arrivedAtStop){
-          if(Math.floor((Date.now() - this.state.startTimeStamp) / 1000) > 14){
-            this.props.navigation.navigate("RouteDestination", {data: this.props.route.params, currentStopIndex: this.state.currentStopIndex});
-            this.setState({arrivedAtStop: true});
-          }
-        }
-      }else{
-        // Route finished
-        this.props.navigation.navigate("RouteCompleted", {data: this.props.route.params});
       }
-    }*/
+    });
   }
 
   componentWillUnmount(){
